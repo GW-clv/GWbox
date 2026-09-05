@@ -1,0 +1,1280 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GW 的太空站 | 个人主页</title>
+    <style>
+        :root {
+            --bg-deep: #050510;
+            --text-main: #e8e8f0;
+            --text-dim: #9090b8;
+            --accent: #7b68ee;
+            --accent-rgb: 123, 104, 238;
+            --accent-glow: rgba(123, 104, 238, 0.45);
+            --glass-bg: rgba(255, 255, 255, 0.06);
+            --glass-border: rgba(255, 255, 255, 0.12);
+            --glass-highlight: rgba(255, 255, 255, 0.15);
+            --font-size-base: 16px;
+            --glass-blur: 20px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; font-size: var(--font-size-base); }
+
+        body {
+            font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: #050510;
+            color: var(--text-main);
+            line-height: 1.7;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        #starfield {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            z-index: 1;
+            pointer-events: none;
+            display: block;
+        }
+
+        /* ========== 导航栏 ========== */
+        .navbar {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 24px;
+            background: rgba(5, 5, 16, 0.78);
+            backdrop-filter: blur(var(--glass-blur));
+            -webkit-backdrop-filter: blur(var(--glass-blur));
+            border-bottom: 1px solid var(--glass-border);
+            transition: all 0.4s;
+        }
+        .navbar.scrolled {
+            box-shadow: 0 4px 25px rgba(0,0,0,0.6);
+            padding: 8px 24px;
+        }
+
+        .navbar .logo {
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: 3px;
+            color: #fff;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+        }
+        .navbar .logo span { color: var(--accent); }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 4px;
+            list-style: none;
+            flex-wrap: nowrap;
+        }
+        .nav-links a {
+            color: var(--text-dim);
+            text-decoration: none;
+            font-size: 12px;
+            letter-spacing: 1px;
+            padding: 6px 10px;
+            border-radius: 6px;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+        .nav-links a:hover {
+            color: #fff;
+            background: rgba(255,255,255,0.06);
+        }
+        .nav-links a.active {
+            color: var(--accent);
+            background: rgba(var(--accent-rgb), 0.1);
+        }
+
+        .settings-btn {
+            width: 34px; height: 34px;
+            border-radius: 50%;
+            border: 1px solid var(--glass-border);
+            background: rgba(255,255,255,0.06);
+            color: var(--text-main);
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.4s;
+            flex-shrink: 0;
+        }
+        .settings-btn:hover {
+            transform: rotate(90deg);
+            border-color: var(--accent);
+            box-shadow: 0 0 16px var(--accent-glow);
+        }
+
+        .hamburger {
+            display: none;
+            flex-direction: column;
+            gap: 4px;
+            cursor: pointer;
+            padding: 4px;
+        }
+        .hamburger span {
+            width: 20px; height: 2px;
+            background: #fff;
+            border-radius: 2px;
+            transition: 0.3s;
+        }
+
+        /* ========== 设置面板 ========== */
+        .settings-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 290;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+        .settings-overlay.open { opacity: 1; visibility: visible; }
+
+        .settings-panel {
+            position: fixed;
+            top: 0; right: -400px;
+            width: 380px;
+            max-width: 92vw;
+            height: 100%;
+            z-index: 291;
+            background: rgba(10, 10, 30, 0.9);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border-left: 1px solid var(--glass-border);
+            padding: 24px 20px;
+            transition: right 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .settings-panel.open { right: 0; }
+
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        .settings-header h3 { font-size: 15px; letter-spacing: 2px; color: #fff; }
+        .close-settings {
+            width: 30px; height: 30px;
+            border-radius: 50%;
+            border: 1px solid var(--glass-border);
+            background: transparent;
+            color: var(--text-main);
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+        .close-settings:hover { background: rgba(255,255,255,0.1); transform: rotate(90deg); }
+
+        .setting-group {
+            padding: 14px 16px;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.07);
+        }
+        .setting-group label {
+            font-size: 12px;
+            letter-spacing: 1px;
+            color: var(--text-dim);
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .color-options { display: flex; gap: 8px; flex-wrap: wrap; }
+        .color-dot {
+            width: 30px; height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+            position: relative;
+        }
+        .color-dot:hover { transform: scale(1.15); }
+        .color-dot.active { border-color: #fff; box-shadow: 0 0 12px var(--accent-glow); }
+        .color-dot.active::after {
+            content: '✓';
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .slider-row { display: flex; align-items: center; gap: 10px; }
+        .slider-row input[type="range"] {
+            flex: 1;
+            accent-color: var(--accent);
+            cursor: pointer;
+            height: 4px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: rgba(255,255,255,0.2);
+            border-radius: 4px;
+            outline: none;
+        }
+        .slider-row input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px; height: 16px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            border: 2px solid #fff;
+            box-shadow: 0 0 8px var(--accent-glow);
+        }
+        .slider-row input[type="range"]::-moz-range-thumb {
+            width: 16px; height: 16px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            border: 2px solid #fff;
+            box-shadow: 0 0 8px var(--accent-glow);
+        }
+        .slider-value {
+            min-width: 36px;
+            text-align: right;
+            font-size: 11px;
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .toggle-row { display: flex; justify-content: space-between; align-items: center; }
+        .toggle-row label { margin-bottom: 0; }
+        .switch { position: relative; width: 42px; height: 22px; cursor: pointer; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .switch .slider {
+            position: absolute;
+            inset: 0;
+            background: rgba(255,255,255,0.15);
+            border-radius: 22px;
+            transition: 0.3s;
+        }
+        .switch .slider::before {
+            content: '';
+            position: absolute;
+            width: 16px; height: 16px;
+            left: 3px; top: 3px;
+            background: #fff;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+        .switch input:checked + .slider { background: var(--accent); box-shadow: 0 0 8px var(--accent-glow); }
+        .switch input:checked + .slider::before { transform: translateX(20px); }
+
+        .reset-btn {
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid var(--glass-border);
+            background: rgba(255,255,255,0.04);
+            color: var(--text-dim);
+            cursor: pointer;
+            font-size: 12px;
+            letter-spacing: 1px;
+            transition: all 0.3s;
+        }
+        .reset-btn:hover {
+            background: rgba(255,100,100,0.1);
+            border-color: rgba(255,100,100,0.4);
+            color: #ff8888;
+        }
+
+        /* ========== Hero ========== */
+        .hero {
+            position: relative;
+            z-index: 2;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 100px 20px 50px;
+        }
+        .hero-badge {
+            display: inline-block;
+            padding: 5px 16px;
+            border-radius: 30px;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            font-size: 11px;
+            letter-spacing: 2px;
+            margin-bottom: 18px;
+            background: rgba(var(--accent-rgb), 0.1);
+        }
+        .hero h1 {
+            font-size: clamp(30px, 6vw, 52px);
+            font-weight: 800;
+            letter-spacing: 4px;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, #ffffff 0%, #c0c8ff 50%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .hero-subtitle {
+            font-size: clamp(13px, 1.8vw, 15px);
+            color: var(--text-dim);
+            max-width: 520px;
+            margin-bottom: 22px;
+            letter-spacing: 1px;
+            line-height: 2;
+        }
+        .typewriter {
+            font-size: 14px;
+            color: var(--accent);
+            letter-spacing: 2px;
+            min-height: 24px;
+            margin-bottom: 22px;
+            text-shadow: 0 0 16px var(--accent-glow);
+        }
+        .typewriter .cursor { animation: blink 0.7s infinite; color: #fff; }
+        @keyframes blink { 0%,50%{opacity:1} 51%,100%{opacity:0} }
+        .hero-btn {
+            display: inline-block;
+            padding: 11px 28px;
+            border-radius: 40px;
+            background: var(--accent);
+            color: #fff;
+            text-decoration: none;
+            font-size: 13px;
+            letter-spacing: 2px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.4s;
+            box-shadow: 0 0 22px var(--accent-glow);
+        }
+        .hero-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 0 40px var(--accent-glow);
+            filter: brightness(1.1);
+        }
+        .scroll-indicator {
+            position: absolute;
+            bottom: 22px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 18px;
+            color: var(--text-dim);
+            animation: bounceDown 2s infinite;
+        }
+        @keyframes bounceDown { 0%,100%{transform:translate(-50%,0)} 50%{transform:translate(-50%,8px)} }
+
+        /* ========== 玻璃卡片 ========== */
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(var(--glass-blur));
+            -webkit-backdrop-filter: blur(var(--glass-blur));
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s;
+        }
+        .glass-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 200%; height: 100%;
+            background: linear-gradient(105deg, transparent 40%, var(--glass-highlight) 50%, transparent 60%);
+            transition: left 0.8s ease;
+            pointer-events: none;
+            z-index: 1;
+        }
+        .glass-card:hover::before { left: 100%; }
+        .glass-card:hover {
+            border-color: rgba(var(--accent-rgb), 0.4);
+            box-shadow: 0 8px 28px rgba(var(--accent-rgb), 0.15);
+            transform: translateY(-3px);
+        }
+
+        /* ========== Section 通用 ========== */
+        .section {
+            position: relative;
+            z-index: 2;
+            padding: 60px 24px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .section-title {
+            text-align: center;
+            font-size: clamp(18px, 3vw, 26px);
+            font-weight: 700;
+            letter-spacing: 4px;
+            margin-bottom: 6px;
+            color: #fff;
+        }
+        .section-subtitle {
+            text-align: center;
+            color: var(--text-dim);
+            font-size: 11px;
+            letter-spacing: 2px;
+            margin-bottom: 32px;
+        }
+
+        /* ========== 技能条 ========== */
+        .skills-list {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            padding: 24px;
+        }
+        .skill-item { display: flex; flex-direction: column; gap: 4px; }
+        .skill-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            letter-spacing: 1px;
+        }
+        .skill-name { color: #fff; }
+        .skill-percent { color: var(--accent); }
+        .skill-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .skill-bar-fill {
+            height: 100%;
+            background: var(--accent);
+            border-radius: 6px;
+            box-shadow: 0 0 10px var(--accent-glow);
+            width: 0%;
+            transition: width 1.5s ease;
+        }
+
+        /* ========== 博客卡片 ========== */
+        .blog-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 14px;
+        }
+        .blog-card {
+            padding: 18px 20px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .blog-date { font-size: 10px; color: var(--accent); letter-spacing: 2px; }
+        .blog-title { font-size: 14px; font-weight: 600; color: #fff; letter-spacing: 1px; }
+        .blog-excerpt { font-size: 11px; color: var(--text-dim); line-height: 1.7; }
+
+        /* ========== 关于我 ========== */
+        .about-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 18px;
+            align-items: stretch;
+        }
+        .about-text {
+            padding: 20px 24px;
+            color: var(--text-dim);
+            font-size: 12px;
+            line-height: 2;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .about-text strong { color: #fff; }
+        .about-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .stat-card { padding: 16px; text-align: center; }
+        .stat-number {
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--accent);
+            margin-bottom: 2px;
+            text-shadow: 0 0 14px var(--accent-glow);
+        }
+        .stat-label { font-size: 10px; color: var(--text-dim); letter-spacing: 1px; }
+
+        /* ========== 作品 ========== */
+        .works-list { display: flex; flex-direction: column; gap: 12px; }
+        .work-item {
+            padding: 18px 22px;
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            cursor: pointer;
+        }
+        .work-icon { font-size: 26px; flex-shrink: 0; margin-top: 2px; }
+        .work-content h3 {
+            font-size: 13px;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 4px;
+            letter-spacing: 1px;
+        }
+        .work-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 4px; }
+        .work-tag {
+            padding: 1px 7px;
+            border-radius: 20px;
+            font-size: 9px;
+            background: rgba(var(--accent-rgb), 0.14);
+            color: var(--accent);
+            letter-spacing: 0.5px;
+            border: 1px solid rgba(var(--accent-rgb), 0.2);
+        }
+        .work-desc { color: var(--text-dim); font-size: 11px; line-height: 1.7; }
+
+        /* ========== 时间线 ========== */
+        .timeline { position: relative; padding-left: 24px; }
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 4px; top: 0;
+            width: 2px; height: 100%;
+            background: linear-gradient(to bottom, var(--accent), transparent);
+            border-radius: 2px;
+        }
+        .timeline-item {
+            position: relative;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            margin-left: 6px;
+        }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -24px; top: 18px;
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 12px var(--accent-glow);
+        }
+        .timeline-date { font-size: 10px; color: var(--accent); letter-spacing: 2px; margin-bottom: 2px; }
+        .timeline-title { font-size: 12px; font-weight: 600; color: #fff; margin-bottom: 2px; }
+        .timeline-desc { font-size: 10px; color: var(--text-dim); }
+
+        /* ========== 联系 ========== */
+        .contact-box { text-align: center; padding: 32px 22px; }
+        .contact-box p { color: var(--text-dim); margin-bottom: 16px; font-size: 12px; }
+        .contact-links { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+        .contact-links a {
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 40px;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            text-decoration: none;
+            font-size: 11px;
+            letter-spacing: 1px;
+            transition: all 0.3s;
+            background: rgba(var(--accent-rgb), 0.06);
+        }
+        .contact-links a:hover {
+            background: var(--accent);
+            color: #fff;
+            box-shadow: 0 0 18px var(--accent-glow);
+        }
+
+        /* ========== 页脚 ========== */
+        .footer {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            padding: 20px;
+            color: #505070;
+            font-size: 10px;
+            letter-spacing: 1.5px;
+            border-top: 1px solid rgba(255,255,255,0.06);
+            background: rgba(0,0,0,0.25);
+        }
+
+        .back-to-top {
+            position: fixed;
+            bottom: 20px; right: 20px;
+            z-index: 150;
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            color: var(--text-main);
+            cursor: pointer;
+            font-size: 14px;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.4s;
+        }
+        .back-to-top.show { opacity: 1; visibility: visible; }
+        .back-to-top:hover {
+            border-color: var(--accent);
+            box-shadow: 0 0 18px var(--accent-glow);
+            transform: translateY(-3px);
+        }
+
+        /* ========== 响应式 ========== */
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+                position: fixed;
+                top: 52px; left: 0; right: 0;
+                background: rgba(5,5,16,0.95);
+                backdrop-filter: blur(25px);
+                flex-direction: column;
+                padding: 12px 20px;
+                gap: 6px;
+                border-bottom: 1px solid var(--glass-border);
+                max-height: 70vh;
+                overflow-y: auto;
+            }
+            .nav-links.open { display: flex; }
+            .hamburger { display: flex; }
+            .section { padding: 36px 12px; }
+            .about-grid { grid-template-columns: 1fr; }
+            .work-item { padding: 14px; flex-direction: column; gap: 8px; }
+            .settings-panel { width: 100vw; max-width: 100vw; }
+            .blog-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="starfield"></canvas>
+
+    <!-- ========== 导航栏 ========== -->
+    <nav class="navbar" id="navbar">
+        <a href="#home" class="logo">GW<span>✦</span>SPACE</a>
+        <div class="nav-right">
+            <ul class="nav-links" id="navLinks">
+                <li><a href="#home" class="active">🏠 首页</a></li>
+                <li><a href="#about">👤 关于我</a></li>
+                <li><a href="#skills">⚡ 技能</a></li>
+                <li><a href="#works">🌟 作品集</a></li>
+                <li><a href="#blog">📝 博客</a></li>
+                <li><a href="#journey">🛰️ 航行轨迹</a></li>
+                <li><a href="#contact">📡 联络</a></li>
+            </ul>
+            <button class="settings-btn" id="settingsBtn" title="设置" onclick="toggleSettings()">⚙</button>
+            <div class="hamburger" id="hamburger" onclick="toggleMenu()">
+                <span></span><span></span><span></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 设置遮罩 -->
+    <div class="settings-overlay" id="settingsOverlay" onclick="toggleSettings()"></div>
+
+    <!-- 设置面板 -->
+    <div class="settings-panel" id="settingsPanel">
+        <div class="settings-header">
+            <h3>⚙ 系统设置</h3>
+            <button class="close-settings" onclick="toggleSettings()">✕</button>
+        </div>
+
+        <div class="setting-group">
+            <label>🎨 主题色</label>
+            <div class="color-options">
+                <div class="color-dot" style="background:#7b68ee" data-color="#7b68ee" data-rgb="123,104,238" onclick="setColor(this)"></div>
+                <div class="color-dot" style="background:#4fc3f7" data-color="#4fc3f7" data-rgb="79,195,247" onclick="setColor(this)"></div>
+                <div class="color-dot" style="background:#4ade80" data-color="#4ade80" data-rgb="74,222,128" onclick="setColor(this)"></div>
+                <div class="color-dot" style="background:#fb923c" data-color="#fb923c" data-rgb="251,146,60" onclick="setColor(this)"></div>
+                <div class="color-dot" style="background:#f472b6" data-color="#f472b6" data-rgb="244,114,182" onclick="setColor(this)"></div>
+                <div class="color-dot" style="background:#f87171" data-color="#f87171" data-rgb="248,113,113" onclick="setColor(this)"></div>
+            </div>
+        </div>
+
+        <div class="setting-group">
+            <label>✨ 星空密度</label>
+            <div class="slider-row">
+                <input type="range" id="starDensity" min="0.3" max="3" step="0.1" value="1">
+                <span class="slider-value" id="starDensityVal">1.0</span>
+            </div>
+        </div>
+
+        <div class="setting-group">
+            <div class="toggle-row">
+                <label>☄️ 流星效果</label>
+                <label class="switch">
+                    <input type="checkbox" id="meteorToggle" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+
+        <div class="setting-group">
+            <label>📝 字体大小</label>
+            <div class="slider-row">
+                <input type="range" id="fontSize" min="13" max="20" step="0.5" value="16">
+                <span class="slider-value" id="fontSizeVal">16px</span>
+            </div>
+        </div>
+
+        <div class="setting-group">
+            <label>💎 玻璃透明度</label>
+            <div class="slider-row">
+                <input type="range" id="glassOpacity" min="0.02" max="0.15" step="0.01" value="0.06">
+                <span class="slider-value" id="glassOpacityVal">0.06</span>
+            </div>
+        </div>
+
+        <div class="setting-group">
+            <label>🌫 玻璃模糊度</label>
+            <div class="slider-row">
+                <input type="range" id="glassBlur" min="0" max="40" step="1" value="20">
+                <span class="slider-value" id="glassBlurVal">20px</span>
+            </div>
+        </div>
+
+        <button class="reset-btn" onclick="resetSettings()">🔄 恢复默认设置</button>
+    </div>
+
+    <!-- ========== Hero / 首页 ========== -->
+    <section class="hero" id="home">
+        <div class="hero-badge">✦ 欢迎来到 GW 的太空站 ✦</div>
+        <h1>你好，我是 GW</h1>
+        <p class="hero-subtitle">
+            一个在代码宇宙里漂流的人，喜欢搭建有趣的东西，<br>
+            记录旅途中的每一次灵感闪光。
+        </p>
+        <div class="typewriter" id="typewriter"></div>
+        <a href="#works" class="hero-btn">🚀 查看我的作品</a>
+        <div class="scroll-indicator">⌄</div>
+    </section>
+
+    <!-- ========== 关于我 ========== -->
+    <section class="section" id="about">
+        <h2 class="section-title">👤 关于我</h2>
+        <p class="section-subtitle">— 地球生活日志 —</p>
+        <div class="about-grid">
+            <div class="about-text glass-card">
+                <p>嗨，我是<strong>GW</strong>，一名来自地球的开发者。白天写代码，晚上仰望星空。</p>
+                <br>
+                <p>我着迷于把复杂的问题拆解成优雅的解决方案。就像宇宙中的每一颗星球都有自己的轨道，每一行代码也应该有它存在的意义。</p>
+                <br>
+                <p>目前主要借助 <strong>AI</strong> 辅助编程进行创作。这个网站是我的小宇宙，用来存放作品和想法。</p>
+            </div>
+            <div class="about-stats">
+                <div class="stat-card glass-card">
+                    <div class="stat-number">2+</div>
+                    <div class="stat-label">个作品项目</div>
+                </div>
+                <div class="stat-card glass-card">
+                    <div class="stat-number">AI</div>
+                    <div class="stat-label">辅助编程</div>
+                </div>
+                <div class="stat-card glass-card">
+                    <div class="stat-number">3+</div>
+                    <div class="stat-label">掌握技能</div>
+                </div>
+                <div class="stat-card glass-card">
+                    <div class="stat-number">∞</div>
+                    <div class="stat-label">对宇宙的好奇</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== 技能 ========== -->
+    <section class="section" id="skills">
+        <h2 class="section-title">⚡ 我的技能</h2>
+        <p class="section-subtitle">— 装备栏 —</p>
+        <div class="skills-list glass-card">
+            <div class="skill-item">
+                <div class="skill-info">
+                    <span class="skill-name">HTML / CSS</span>
+                    <span class="skill-percent">85%</span>
+                </div>
+                <div class="skill-bar"><div class="skill-bar-fill" data-width="85"></div></div>
+            </div>
+            <div class="skill-item">
+                <div class="skill-info">
+                    <span class="skill-name">JavaScript</span>
+                    <span class="skill-percent">60%</span>
+                </div>
+                <div class="skill-bar"><div class="skill-bar-fill" data-width="60"></div></div>
+            </div>
+            <div class="skill-item">
+                <div class="skill-info">
+                    <span class="skill-name">AI 辅助编程</span>
+                    <span class="skill-percent">90%</span>
+                </div>
+                <div class="skill-bar"><div class="skill-bar-fill" data-width="90"></div></div>
+            </div>
+            <div class="skill-item">
+                <div class="skill-info">
+                    <span class="skill-name">模拟器调试</span>
+                    <span class="skill-percent">70%</span>
+                </div>
+                <div class="skill-bar"><div class="skill-bar-fill" data-width="70"></div></div>
+            </div>
+            <div class="skill-item">
+                <div class="skill-info">
+                    <span class="skill-name">星空知识</span>
+                    <span class="skill-percent">75%</span>
+                </div>
+                <div class="skill-bar"><div class="skill-bar-fill" data-width="75"></div></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== 作品集 ========== -->
+    <section class="section" id="works">
+        <h2 class="section-title">🌟 我的作品</h2>
+        <p class="section-subtitle">— 航行日志 —</p>
+        <div class="works-list">
+
+            <div class="work-item glass-card">
+                <div class="work-icon">🔭</div>
+                <div class="work-content">
+                    <h3>星空科普模拟器</h3>
+                    <div class="work-tags">
+                        <span class="work-tag">HTML</span>
+                        <span class="work-tag">CSS</span>
+                        <span class="work-tag">JavaScript</span>
+                    </div>
+                    <p class="work-desc">
+                        一个交互式星空科普工具，模拟星空中的恒星、行星和星座，帮助了解宇宙的基本知识。支持缩放、旋转和点击查看天体详情。
+                    </p>
+                </div>
+            </div>
+
+            <div class="work-item glass-card">
+                <div class="work-icon">📱</div>
+                <div class="work-content">
+                    <h3>安卓系统模拟器</h3>
+                    <div class="work-tags">
+                        <span class="work-tag">模拟器</span>
+                        <span class="work-tag">Android</span>
+                    </div>
+                    <p class="work-desc">
+                        一个安卓系统环境的模拟项目，可以在浏览器中体验部分安卓系统功能。目前处于测试阶段，持续完善中。
+                    </p>
+                </div>
+            </div>
+
+            <div class="work-item glass-card">
+                <div class="work-icon">🌌</div>
+                <div class="work-content">
+                    <h3>像素星图生成器</h3>
+                    <div class="work-tags">
+                        <span class="work-tag">JavaScript</span>
+                        <span class="work-tag">Canvas</span>
+                    </div>
+                    <p class="work-desc">
+                        在线生成复古像素风格星图，可调整密度、配色和星座连线，一键导出 PNG 图片，适合做壁纸或头像。
+                    </p>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- ========== 博客 ========== -->
+    <section class="section" id="blog">
+        <h2 class="section-title">📝 博客</h2>
+        <p class="section-subtitle">— 星际通讯 —</p>
+        <div class="blog-grid">
+
+            <div class="blog-card glass-card">
+                <div class="blog-date">2026 · 09 · 01</div>
+                <div class="blog-title">🚀 我的个人太空站上线了</div>
+                <div class="blog-excerpt">花了几天时间，终于把这个网站搭建出来。这里会记录我的项目进展和想法。</div>
+            </div>
+
+            <div class="blog-card glass-card">
+                <div class="blog-date">2026 · 08 · 15</div>
+                <div class="blog-title">🔭 星空科普模拟器开发日志</div>
+                <div class="blog-excerpt">借助 AI 辅助编程，完成了星空科普模拟器的初版。下一步计划加入更多交互功能。</div>
+            </div>
+
+            <div class="blog-card glass-card">
+                <div class="blog-date">2026 · 07 · 20</div>
+                <div class="blog-title">📱 折腾安卓模拟器的那些事</div>
+                <div class="blog-excerpt">对系统模拟产生兴趣，开始研究安卓模拟器的原理和实现方式，目前还在测试阶段。</div>
+            </div>
+
+            <div class="blog-card glass-card">
+                <div class="blog-date">2026 · 06 · 10</div>
+                <div class="blog-title">🤖 AI 编程初体验</div>
+                <div class="blog-excerpt">第一次用 AI 写代码，效率提升了很多。记录一下自己的使用心得和踩坑经验。</div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- ========== 航行轨迹 ========== -->
+    <section class="section" id="journey">
+        <h2 class="section-title">🛰️ 航行轨迹</h2>
+        <p class="section-subtitle">— 时间线 —</p>
+        <div class="timeline">
+
+            <div class="timeline-item glass-card">
+                <div class="timeline-date">2026 · 09</div>
+                <div class="timeline-title">建立个人太空站</div>
+                <div class="timeline-desc">搭建了这个网站，开始记录自己的作品和想法。</div>
+            </div>
+
+            <div class="timeline-item glass-card">
+                <div class="timeline-date">2026 · 08</div>
+                <div class="timeline-title">开发星空科普模拟器</div>
+                <div class="timeline-desc">借助 AI 辅助编程，完成了星空科普模拟器的初版。</div>
+            </div>
+
+            <div class="timeline-item glass-card">
+                <div class="timeline-date">2026 · 07</div>
+                <div class="timeline-title">开始尝试安卓系统模拟器</div>
+                <div class="timeline-desc">对系统模拟产生兴趣，开始折腾安卓模拟器项目。</div>
+            </div>
+
+            <div class="timeline-item glass-card">
+                <div class="timeline-date">2026 · 06</div>
+                <div class="timeline-title">开始用 AI 辅助编程</div>
+                <div class="timeline-desc">发现 AI 写代码的可能性，从此打开了新世界的大门。</div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- ========== 联络 ========== -->
+    <section class="section" id="contact">
+        <h2 class="section-title">📡 与我联络</h2>
+        <p class="section-subtitle">— 发送信号 —</p>
+        <div class="contact-box glass-card">
+            <p>无论是对作品的反馈，还是想聊聊宇宙和代码，都欢迎随时联系我。</p>
+            <div class="contact-links">
+                <a href="mailto:你的邮箱@example.com">📧 邮件</a>
+                <a href="https://github.com/你的用户名" target="_blank">🐙 GitHub</a>
+                <a href="#">💬 微信</a>
+                <a href="#">📺 Bilibili</a>
+                <a href="#">🐦 Twitter</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- 页脚 -->
+    <div class="footer">© 2026 GW 的太空站 · 在浩瀚宇宙中与你相遇</div>
+
+    <button class="back-to-top" id="backToTop" onclick="scrollToTop()">↑</button>
+
+    <script>
+        /* ========== 星空粒子 ========== */
+        var canvas = document.getElementById('starfield');
+        var ctx = canvas.getContext('2d');
+        var stars = [];
+        var shootingStars = [];
+        var starDensityMultiplier = 1;
+        var meteorEnabled = true;
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            createStars();
+        }
+
+        function createStars() {
+            stars = [];
+            var baseCount = Math.floor((canvas.width * canvas.height) / 2800);
+            var count = Math.max(60, Math.floor(baseCount * starDensityMultiplier));
+            for (var i = 0; i < count; i++) {
+                stars.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    radius: Math.random() * 1.6 + 0.4,
+                    alpha: Math.random() * 0.9 + 0.3,
+                    twinkleSpeed: Math.random() * 0.025 + 0.008,
+                    phase: Math.random() * Math.PI * 2,
+                    driftX: (Math.random() - 0.5) * 0.08,
+                    driftY: (Math.random() - 0.5) * 0.08
+                });
+            }
+        }
+
+        function createShootingStar() {
+            return {
+                x: Math.random() * canvas.width * 0.6 + canvas.width * 0.3,
+                y: Math.random() * canvas.height * 0.25,
+                vx: -(Math.random() * 5 + 4),
+                vy: Math.random() * 2 + 1,
+                life: 1,
+                decay: Math.random() * 0.014 + 0.007,
+                len: Math.random() * 90 + 50,
+                width: Math.random() * 1.5 + 1
+            };
+        }
+
+        function animateStars() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            stars.forEach(function(star) {
+                star.phase += star.twinkleSpeed;
+                star.x += star.driftX;
+                star.y += star.driftY;
+                if (star.x < -5) star.x = canvas.width + 5;
+                if (star.x > canvas.width + 5) star.x = -5;
+                if (star.y < -5) star.y = canvas.height + 5;
+                if (star.y > canvas.height + 5) star.y = -5;
+
+                var alpha = star.alpha * (0.55 + 0.45 * Math.sin(star.phase));
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255,255,255,' + alpha + ')';
+                ctx.fill();
+            });
+
+            if (meteorEnabled && Math.random() < 0.005 && shootingStars.length < 3) {
+                shootingStars.push(createShootingStar());
+            }
+
+            for (var i = shootingStars.length - 1; i >= 0; i--) {
+                var ss = shootingStars[i];
+                ss.x += ss.vx;
+                ss.y += ss.vy;
+                ss.life -= ss.decay;
+                if (ss.life <= 0 || ss.x < -150 || ss.y > canvas.height + 150) {
+                    shootingStars.splice(i, 1);
+                    continue;
+                }
+                var grad = ctx.createLinearGradient(ss.x, ss.y, ss.x + ss.len, ss.y - ss.len * 0.35);
+                grad.addColorStop(0, 'rgba(255,255,255,' + ss.life + ')');
+                grad.addColorStop(0.3, 'rgba(160,140,255,' + (ss.life * 0.5) + ')');
+                grad.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.beginPath();
+                ctx.moveTo(ss.x, ss.y);
+                ctx.lineTo(ss.x + ss.len, ss.y - ss.len * 0.35);
+                ctx.strokeStyle = grad;
+                ctx.lineWidth = ss.width;
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.arc(ss.x, ss.y, ss.width * 1.3, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255,255,255,' + (ss.life * 0.75) + ')';
+                ctx.fill();
+            }
+
+            requestAnimationFrame(animateStars);
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+        animateStars();
+
+        /* ========== 设置系统 ========== */
+        function loadSettings() {
+            try {
+                var saved = localStorage.getItem('gw-cosmos-settings');
+                if (saved) return JSON.parse(saved);
+            } catch(e) {}
+            return { color:'#7b68ee', colorRgb:'123,104,238', starDensity:1, meteor:true, fontSize:16, glassOpacity:0.06, glassBlur:20 };
+        }
+
+        var settings = loadSettings();
+
+        function saveSettings() {
+            try { localStorage.setItem('gw-cosmos-settings', JSON.stringify(settings)); } catch(e) {}
+        }
+
+        function applyVisualSettings() {
+            var root = document.documentElement;
+            root.style.setProperty('--accent', settings.color);
+            root.style.setProperty('--accent-rgb', settings.colorRgb);
+            root.style.setProperty('--accent-glow', 'rgba(' + settings.colorRgb + ', 0.45)');
+            root.style.setProperty('--font-size-base', settings.fontSize + 'px');
+            root.style.setProperty('--glass-bg', 'rgba(255,255,255,' + settings.glassOpacity + ')');
+            root.style.setProperty('--glass-border', 'rgba(255,255,255,' + (settings.glassOpacity * 2) + ')');
+            root.style.setProperty('--glass-highlight', 'rgba(255,255,255,' + (settings.glassOpacity * 2.5) + ')');
+            root.style.setProperty('--glass-blur', settings.glassBlur + 'px');
+            starDensityMultiplier = settings.starDensity;
+            meteorEnabled = settings.meteor;
+            createStars();
+            document.querySelectorAll('.color-dot').forEach(function(dot) {
+                dot.classList.toggle('active', dot.dataset.color === settings.color);
+            });
+        }
+
+        function updateControlsDisplay() {
+            document.getElementById('starDensity').value = settings.starDensity;
+            document.getElementById('starDensityVal').textContent = settings.starDensity.toFixed(1);
+            document.getElementById('meteorToggle').checked = settings.meteor;
+            document.getElementById('fontSize').value = settings.fontSize;
+            document.getElementById('fontSizeVal').textContent = settings.fontSize + 'px';
+            document.getElementById('glassOpacity').value = settings.glassOpacity;
+            document.getElementById('glassOpacityVal').textContent = settings.glassOpacity.toFixed(2);
+            document.getElementById('glassBlur').value = settings.glassBlur;
+            document.getElementById('glassBlurVal').textContent = settings.glassBlur + 'px';
+        }
+
+        function toggleSettings() {
+            document.getElementById('settingsPanel').classList.toggle('open');
+            document.getElementById('settingsOverlay').classList.toggle('open');
+        }
+
+        function setColor(el) {
+            settings.color = el.dataset.color;
+            settings.colorRgb = el.dataset.rgb;
+            saveSettings();
+            applyVisualSettings();
+        }
+
+        document.getElementById('starDensity').addEventListener('input', function() {
+            settings.starDensity = parseFloat(this.value);
+            document.getElementById('starDensityVal').textContent = settings.starDensity.toFixed(1);
+            starDensityMultiplier = settings.starDensity;
+            createStars();
+            saveSettings();
+        });
+
+        document.getElementById('meteorToggle').addEventListener('change', function() {
+            settings.meteor = this.checked;
+            meteorEnabled = this.checked;
+            saveSettings();
+        });
+
+        document.getElementById('fontSize').addEventListener('input', function() {
+            settings.fontSize = parseFloat(this.value);
+            document.getElementById('fontSizeVal').textContent = settings.fontSize.toFixed(1) + 'px';
+            document.documentElement.style.setProperty('--font-size-base', settings.fontSize + 'px');
+            saveSettings();
+        });
+
+        document.getElementById('glassOpacity').addEventListener('input', function() {
+            settings.glassOpacity = parseFloat(this.value);
+            document.getElementById('glassOpacityVal').textContent = settings.glassOpacity.toFixed(2);
+            document.documentElement.style.setProperty('--glass-bg', 'rgba(255,255,255,' + settings.glassOpacity + ')');
+            document.documentElement.style.setProperty('--glass-border', 'rgba(255,255,255,' + (settings.glassOpacity * 2) + ')');
+            document.documentElement.style.setProperty('--glass-highlight', 'rgba(255,255,255,' + (settings.glassOpacity * 2.5) + ')');
+            saveSettings();
+        });
+
+        document.getElementById('glassBlur').addEventListener('input', function() {
+            settings.glassBlur = parseInt(this.value);
+            document.getElementById('glassBlurVal').textContent = settings.glassBlur + 'px';
+            document.documentElement.style.setProperty('--glass-blur', settings.glassBlur + 'px');
+            saveSettings();
+        });
+
+        function resetSettings() {
+            settings = { color:'#7b68ee', colorRgb:'123,104,238', starDensity:1, meteor:true, fontSize:16, glassOpacity:0.06, glassBlur:20 };
+            saveSettings();
+            applyVisualSettings();
+            updateControlsDisplay();
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                document.getElementById('settingsPanel').classList.remove('open');
+                document.getElementById('settingsOverlay').classList.remove('open');
+            }
+        });
+
+        applyVisualSettings();
+        updateControlsDisplay();
+
+        /* ========== 打字机 ========== */
+        var phrases = ['✦ 在代码宇宙中探索未知 ✦', '✦ 把想法变成现实 ✦', '✦ 一直在路上 ✦', '✦ 仰望星空，脚踏实地 ✦'];
+        var pi = 0, ci = 0, del = false;
+        var twEl = document.getElementById('typewriter');
+
+        function typeWriter() {
+            var cur = phrases[pi];
+            if (!del && ci <= cur.length) {
+                twEl.innerHTML = cur.substring(0, ci) + '<span class="cursor">|</span>';
+                ci++;
+                setTimeout(typeWriter, 75);
+            } else if (!del && ci > cur.length) {
+                del = true;
+                setTimeout(typeWriter, 2000);
+            } else if (del && ci > 0) {
+                twEl.innerHTML = cur.substring(0, ci) + '<span class="cursor">|</span>';
+                ci--;
+                setTimeout(typeWriter, 35);
+            } else {
+                del = false;
+                pi = (pi + 1) % phrases.length;
+                setTimeout(typeWriter, 400);
+            }
+        }
+        typeWriter();
+
+        /* ========== 导航 ========== */
+        function toggleMenu() {
+            document.getElementById('navLinks').classList.toggle('open');
+        }
+
+        document.querySelectorAll('.nav-links a').forEach(function(link) {
+            link.addEventListener('click', function() {
+                document.getElementById('navLinks').classList.remove('open');
+                document.querySelectorAll('.nav-links a').forEach(function(a) { a.classList.remove('active'); });
+                link.classList.add('active');
+            });
+        });
+
+        window.addEventListener('scroll', function() {
+            document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 40);
+            document.getElementById('backToTop').classList.toggle('show', window.scrollY > 300);
+            updateActiveNav();
+        });
+
+        function updateActiveNav() {
+            var sections = ['home', 'about', 'skills', 'works', 'blog', 'journey', 'contact'];
+            var current = 'home';
+            for (var i = 0; i < sections.length; i++) {
+                var el = document.getElementById(sections[i]);
+                if (el && window.scrollY + 100 >= el.offsetTop) {
+                    current = sections[i];
+                }
+            }
+            document.querySelectorAll('.nav-links a').forEach(function(a) {
+                a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+            });
+        }
+
+        function scrollToTop() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        /* ========== 技能条滚动动画 ========== */
+        var skillBars = document.querySelectorAll('.skill-bar-fill');
+        var skillsAnimated = false;
+
+        function animateSkillBars() {
+            if (skillsAnimated) return;
+            var skillsSection = document.getElementById('skills');
+            if (skillsSection && window.scrollY + 500 >= skillsSection.offsetTop) {
+                skillsAnimated = true;
+                skillBars.forEach(function(bar) {
+                    bar.style.width = bar.dataset.width + '%';
+                });
+            }
+        }
+
+        window.addEventListener('scroll', animateSkillBars);
+        animateSkillBars();
+    </script>
+</body>
+</html>
