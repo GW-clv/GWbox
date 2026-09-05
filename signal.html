@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>星际信号接收器 | GW 的太空站</title>
+    <style>
+        :root {
+            --bg: #020208;
+            --panel: rgba(8, 14, 28, 0.85);
+            --border: rgba(100, 180, 255, 0.15);
+            --text: #d0e4ff;
+            --dim: #5a7a9a;
+            --accent: #40c4ff;
+            --accent-rgb: 64,196,255;
+            --warning: #ffb74d;
+            --danger: #ff5252;
+            --success: #69f0ae;
+            --rare: #b388ff;
+            --legendary: #ffd700;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: var(--bg);
+            font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", monospace;
+            color: var(--text);
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        #bgCanvas {
+            position: fixed; top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            z-index: 0; pointer-events: none;
+        }
+
+        .container {
+            position: relative; z-index: 1;
+            width: 100%; height: 100%;
+            display: flex; flex-direction: column;
+            padding: 10px; gap: 8px;
+        }
+
+        /* 顶部 */
+        .status-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 14px;
+            background: var(--panel);
+            backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+            border: 1px solid var(--border); border-radius: 10px;
+            flex-shrink: 0;
+        }
+        .status-left { display: flex; align-items: center; gap: 8px; }
+        .status-dot {
+            width: 7px; height: 7px; border-radius: 50%;
+            background: var(--success); box-shadow: 0 0 10px var(--success);
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+        .status-text { font-size: 10px; letter-spacing: 1.5px; color: var(--success); }
+        .status-freq {
+            font-size: 14px; letter-spacing: 2px; color: var(--accent);
+            font-weight: 700; text-shadow: 0 0 15px rgba(64,196,255,0.5);
+        }
+        .status-collect {
+            font-size: 10px; letter-spacing: 1px; color: var(--dim);
+        }
+        .status-collect .value { color: var(--warning); font-weight: 700; }
+
+        /* 频率调谐滑块 */
+        .tuner-panel {
+            display: flex; align-items: center; gap: 10px;
+            padding: 8px 14px;
+            background: var(--panel);
+            backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+            border: 1px solid var(--border); border-radius: 10px;
+            flex-shrink: 0;
+        }
+        .tuner-label {
+            font-size: 9px; letter-spacing: 1px; color: var(--dim);
+            white-space: nowrap; flex-shrink: 0;
+        }
+        .tuner-slider {
+            flex: 1; height: 4px;
+            -webkit-appearance: none; appearance: none;
+            background: rgba(64,196,255,0.15); border-radius: 4px; outline: none;
+            cursor: pointer; touch-action: manipulation;
+        }
+        .tuner-slider::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none;
+            width: 18px; height: 18px; border-radius: 50%;
+            background: var(--accent); cursor: pointer;
+            border: 2px solid #fff; box-shadow: 0 0 12px rgba(64,196,255,0.6);
+        }
+        .tuner-slider::-moz-range-thumb {
+            width: 18px; height: 18px; border-radius: 50%;
+            background: var(--accent); cursor: pointer;
+            border: 2px solid #fff; box-shadow: 0 0 12px rgba(64,196,255,0.6);
+        }
+        .tuner-value {
+            font-size: 11px; letter-spacing: 1px; color: var(--accent);
+            font-weight: 700; min-width: 70px; text-align: right; flex-shrink: 0;
+        }
+
+        /* 波形 */
+        .wave-panel {
+            flex: 1; position: relative;
+            background: var(--panel);
+            backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+            border: 1px solid var(--border); border-radius: 10px;
+            overflow: hidden; min-height: 0;
+            cursor: pointer;
+        }
+        #waveCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        .wave-info {
+            position: absolute; top: 8px; left: 12px;
+            font-size: 8px; letter-spacing: 1px; color: var(--dim);
+            pointer-events: none;
+        }
+        .signal-alert {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            font-size: 18px; letter-spacing: 4px; color: var(--warning);
+            text-shadow: 0 0 25px rgba(255,183,77,0.8);
+            pointer-events: none; transition: all 0.35s cubic-bezier(0.22,1,0.36,1);
+            background: rgba(255,183,77,0.08);
+            padding: 14px 22px; border-radius: 12px;
+            border: 1px solid rgba(255,183,77,0.3);
+            backdrop-filter: blur(8px); white-space: nowrap;
+        }
+        .signal-alert.show { transform: translate(-50%,-50%) scale(1); }
+
+        /* 按钮 */
+        .control-panel {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 6px; flex-shrink: 0;
+        }
+        .ctrl-btn {
+            padding: 8px 6px;
+            background: var(--panel);
+            backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+            border: 1px solid var(--border); border-radius: 8px;
+            color: var(--text); cursor: pointer;
+            font-size: 8px; letter-spacing: 0.5px; text-align: center;
+            transition: all 0.3s; font-family: inherit;
+            touch-action: manipulation;
+        }
+        .ctrl-btn:hover, .ctrl-btn:active {
+            border-color: var(--accent);
+            background: rgba(64,196,255,0.08);
+        }
+        .ctrl-btn .icon { font-size: 16px; display: block; margin-bottom: 2px; }
+
+        /* 图鉴面板 */
+        .collection-panel {
+            max-height: 100px;
+            overflow-y: auto;
+            background: var(--panel);
+            backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+            border: 1px solid var(--border); border-radius: 10px;
+            padding: 8px 12px; flex-shrink: 0;
+            -webkit-overflow-scrolling: touch;
+        }
+        .collection-title {
+            font-size: 8px; letter-spacing: 2px; color: var(--dim);
+            margin-bottom: 5px;
+        }
+        .collection-grid {
+            display: flex; flex-wrap: wrap; gap: 5px;
+        }
+        .collection-item {
+            width: 32px; height: 32px;
+            border-radius: 6px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px; cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            touch-action: manipulation;
+        }
+        .collection-item:hover { border-color: var(--accent); transform: scale(1.1); }
+        .collection-item.locked {
+            opacity: 0.3;
+            filter: grayscale(1);
+        }
+        .collection-item.locked::after {
+            content: '?'; position: absolute; font-size: 12px; color: var(--dim);
+        }
+        .collection-item.locked span { display: none; }
+        .collection-item .rarity-dot {
+            position: absolute; bottom: 1px; right: 1px;
+            width: 5px; height: 5px; border-radius: 50%;
+        }
+
+        /* 解码弹窗 */
+        .decode-overlay {
+            position: fixed; inset: 0; z-index: 100;
+            background: rgba(0,0,0,0.65);
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; visibility: hidden; transition: all 0.3s;
+        }
+        .decode-overlay.open { opacity: 1; visibility: visible; }
+        .decode-modal {
+            background: rgba(8,12,25,0.96);
+            backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
+            border: 1px solid var(--border); border-radius: 16px;
+            padding: 22px; max-width: 90vw; width: 380px;
+            text-align: center;
+            transform: scale(0.85); transition: transform 0.3s;
+            max-height: 80vh; overflow-y: auto;
+        }
+        .decode-overlay.open .decode-modal { transform: scale(1); }
+        .decode-rarity {
+            font-size: 9px; letter-spacing: 2px;
+            padding: 2px 10px; border-radius: 20px;
+            display: inline-block; margin-bottom: 8px;
+        }
+        .rarity-common { background: rgba(100,180,255,0.1); color: #90caf9; border: 1px solid rgba(100,180,255,0.3); }
+        .rarity-uncommon { background: rgba(105,240,174,0.1); color: var(--success); border: 1px solid rgba(105,240,174,0.3); }
+        .rarity-rare { background: rgba(179,136,255,0.1); color: var(--rare); border: 1px solid rgba(179,136,255,0.3); }
+        .rarity-legendary { background: rgba(255,215,0,0.1); color: var(--legendary); border: 1px solid rgba(255,215,0,0.3); }
+
+        .decode-icon { font-size: 34px; margin-bottom: 6px; }
+        .decode-title { font-size: 13px; letter-spacing: 2px; color: var(--warning); margin-bottom: 8px; font-weight: 700; }
+        .decode-text {
+            font-size: 11px; letter-spacing: 1px; color: var(--text);
+            line-height: 2; margin-bottom: 10px;
+            padding: 10px; background: rgba(255,255,255,0.03);
+            border-radius: 10px; border: 1px solid rgba(255,255,255,0.06);
+            text-align: left; white-space: pre-wrap;
+        }
+        .decode-canvas-wrap {
+            display: flex; justify-content: center; margin-bottom: 8px;
+        }
+        #decodeImageCanvas {
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+        .decode-close {
+            padding: 8px 22px; border-radius: 30px;
+            border: 1px solid var(--border); background: transparent;
+            color: var(--dim); cursor: pointer;
+            font-size: 10px; letter-spacing: 1.5px;
+            transition: all 0.3s; font-family: inherit;
+        }
+        .decode-close:hover { border-color: var(--accent); color: var(--accent); }
+
+        @media (max-width: 768px) {
+            .container { padding: 6px; gap: 5px; }
+            .status-bar { padding: 7px 10px; }
+            .status-freq { font-size: 11px; }
+            .tuner-panel { padding: 6px 10px; }
+            .ctrl-btn { padding: 6px 4px; font-size: 7px; }
+            .ctrl-btn .icon { font-size: 13px; }
+            .collection-panel { max-height: 70px; }
+            .collection-item { width: 26px; height: 26px; font-size: 13px; }
+            .signal-alert { font-size: 13px; padding: 10px 16px; }
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="bgCanvas"></canvas>
+
+    <div class="container">
+        <!-- 状态栏 -->
+        <div class="status-bar">
+            <div class="status-left">
+                <div class="status-dot"></div>
+                <span class="status-text">接收中</span>
+            </div>
+            <span class="status-freq" id="freqDisplay">1420.405 MHz</span>
+            <span class="status-collect">📡 图鉴 <span class="value" id="collectCount">0/15</span></span>
+        </div>
+
+        <!-- 频率调谐 -->
+        <div class="tuner-panel">
+            <span class="tuner-label">📻 调谐</span>
+            <input type="range" class="tuner-slider" id="tunerSlider" min="1000" max="6000" step="1" value="1420">
+            <span class="tuner-value" id="tunerValue">1420 MHz</span>
+        </div>
+
+        <!-- 波形 -->
+        <div class="wave-panel" id="wavePanel">
+            <canvas id="waveCanvas"></canvas>
+            <div class="wave-info" id="waveInfo">SNR: 0 dB</div>
+            <div class="signal-alert" id="signalAlert">📡 检测到信号</div>
+        </div>
+
+        <!-- 按钮 -->
+        <div class="control-panel">
+            <button class="ctrl-btn" onclick="toggleScan()" id="scanBtn">
+                <span class="icon">📡</span>扫描
+            </button>
+            <button class="ctrl-btn" onclick="forceSignal()">
+                <span class="icon">🎯</span>锁定
+            </button>
+            <button class="ctrl-btn" onclick="toggleAutoDecode()" id="autoBtn">
+                <span class="icon">🔓</span>自动
+            </button>
+            <button class="ctrl-btn" onclick="toggleSound()" id="soundBtn">
+                <span class="icon">🔊</span>声音
+            </button>
+            <button class="ctrl-btn" onclick="clearCollection()">
+                <span class="icon">🗑</span>清空
+            </button>
+        </div>
+
+        <!-- 图鉴 -->
+        <div class="collection-panel">
+            <div class="collection-title">📡 信号图鉴（点击查看已发现信号）</div>
+            <div class="collection-grid" id="collectionGrid"></div>
+        </div>
+    </div>
+
+    <!-- 解码弹窗 -->
+    <div class="decode-overlay" id="decodeOverlay" onclick="closeDecode(event)">
+        <div class="decode-modal" onclick="event.stopPropagation()">
+            <div class="decode-rarity" id="decodeRarity">普通</div>
+            <div class="decode-icon" id="decodeIcon">👽</div>
+            <div class="decode-title" id="decodeTitle">信号解码</div>
+            <div class="decode-canvas-wrap" id="decodeCanvasWrap" style="display:none">
+                <canvas id="decodeImageCanvas" width="200" height="200"></canvas>
+            </div>
+            <div class="decode-text" id="decodeText">...</div>
+            <button class="decode-close" onclick="closeDecode()">关闭</button>
+        </div>
+    </div>
+
+    <script>
+        /* ==========================================================
+           星际信号接收器 v2 - 完整版
+           ========================================================== */
+
+        // ========== 信号数据库 ==========
+        const signalDatabase = [
+            { id: 0, rarity: 'common', icon: '📡', title: '脉冲星信标', text: '周期 1.337 秒。\n我们在银河系的另一端。\n用引力波向你问好。', freq: 1420 },
+            { id: 1, rarity: 'common', icon: '🌠', title: '彗星低语', text: '每次经过太阳，我都会融化一点。\n下一次，我可能就不在了。', freq: 2200 },
+            { id: 2, rarity: 'common', icon: '💫', title: '星尘信号', text: '你身体里的铁，来自远古超新星。\n你本身就是宇宙的一部分。', freq: 3100 },
+            { id: 3, rarity: 'uncommon', icon: '🌌', title: '宇宙微波回声', text: '这是宇宙诞生后 38 万年的回响。\n我们听到的一切，都是时间的涟漪。', freq: 1800 },
+            { id: 4, rarity: 'uncommon', icon: '🪐', title: '流浪行星广播', text: '我没有母星。已在黑暗中漂流十亿年。\n孤独，但自由。', freq: 2700 },
+            { id: 5, rarity: 'uncommon', icon: '🔭', title: '观测者记录', text: '有人在看你。\n从很远很远的地方。\n带着善意。', freq: 3500 },
+            { id: 6, rarity: 'rare', icon: '👽', title: '未知文明信号', text: '我们来自猎户座旋臂。\n你们的星球很美丽。\n请继续探索宇宙。', freq: 4200 },
+            { id: 7, rarity: 'rare', icon: '🛸', title: '飞船残骸讯息', text: '如果你们收到这条消息，我们的航行已经结束。\n请记录坐标：RA 05h 35m 17s', freq: 4800 },
+            { id: 8, rarity: 'rare', icon: '🕳', title: '黑洞边缘回音', text: '时间在这里变慢。\n我在奇点附近，向你发送这条消息。\n可能需要几百万年才能到达。', freq: 5300 },
+            { id: 9, rarity: 'legendary', icon: '🌍', title: '未来地球讯息', text: '我们是 300 年后的人类。\n地球还在，星空还在。\n谢谢你们当年的探索。', freq: 5600 },
+            { id: 10, rarity: 'legendary', icon: '🧬', title: '生命起源信号', text: '所有生命都是星尘的另一种形态。\n碳、氢、氧、氮……\n我们都来自同一片星云。', freq: 5900 },
+            { id: 11, rarity: 'common', icon: '🎵', title: '星际音乐盒', text: '♪ 这段频率是宇宙的背景音乐 ♪\nα 14.2 MHz · β 22.7 MHz · γ 33.1 MHz', freq: 1500 },
+            { id: 12, rarity: 'uncommon', icon: '📜', title: '古代文明遗言', text: '我们的文明持续了一万年。\n最后我们发现：\n最重要的不是到达哪里，而是沿途看到了什么。', freq: 2500 },
+            { id: 13, rarity: 'rare', icon: '🔮', title: '量子纠缠信息', text: '你读到这条消息的那一刻，\n宇宙另一端的我也同时知道了。\n这就是纠缠。', freq: 4600 },
+            { id: 14, rarity: 'legendary', icon: '🚀', title: '旅行者回传', text: '我已飞出太阳系。\n地球在我身后，像一粒微尘。\n但我一直记得来时的方向。', freq: 5800 }
+        ];
+
+        // ========== DOM ==========
+        const bgCanvas = document.getElementById('bgCanvas');
+        const bgCtx = bgCanvas.getContext('2d');
+        const waveCanvas = document.getElementById('waveCanvas');
+        const waveCtx = waveCanvas.getContext('2d');
+        const tunerSlider = document.getElementById('tunerSlider');
+        const tunerValue = document.getElementById('tunerValue');
+        const freqDisplay = document.getElementById('freqDisplay');
+        const waveInfo = document.getElementById('waveInfo');
+        const signalAlert = document.getElementById('signalAlert');
+        const collectionGrid = document.getElementById('collectionGrid');
+        const decodeOverlay = document.getElementById('decodeOverlay');
+        const decodeRarity = document.getElementById('decodeRarity');
+        const decodeIcon = document.getElementById('decodeIcon');
+        const decodeTitle = document.getElementById('decodeTitle');
+        const decodeText = document.getElementById('decodeText');
+        const decodeCanvasWrap = document.getElementById('decodeCanvasWrap');
+        const decodeImageCanvas = document.getElementById('decodeImageCanvas');
+
+        // ========== 状态 ==========
+        let currentFreq = 1420;
+        let targetFreq = 1420;
+        let scanning = true;
+        let autoDecode = false;
+        let soundEnabled = true;
+        let signalActive = false;
+        let signalStrength = 0;
+        let signalProgress = 0;
+        let waveHistory = [];
+        let scanAngle = 0;
+        let collectedSignals = new Set();
+        let activeSignalData = null;
+        let signalFreqRange = 30; // 信号频率匹配范围
+        let audioCtx = null;
+        let lastBeepTime = 0;
+
+        // ========== 音频系统 ==========
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playBeep(freq, duration, volume) {
+            if (!soundEnabled || !audioCtx) return;
+            try {
+                var osc = audioCtx.createOscillator();
+                var gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.value = freq;
+                gain.gain.value = volume || 0.1;
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(audioCtx.currentTime);
+                osc.stop(audioCtx.currentTime + duration);
+            } catch(e) {}
+        }
+
+        function playStatic(duration) {
+            if (!soundEnabled || !audioCtx) return;
+            try {
+                var bufferSize = audioCtx.sampleRate * duration;
+                var buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                var data = buffer.getChannelData(0);
+                for (var i = 0; i < bufferSize; i++) {
+                    data[i] = (Math.random() * 2 - 1) * 0.05;
+                }
+                var source = audioCtx.createBufferSource();
+                source.buffer = buffer;
+                var gain = audioCtx.createGain();
+                gain.gain.value = 0.3;
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+                source.connect(gain);
+                gain.connect(audioCtx.destination);
+                source.start();
+            } catch(e) {}
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            document.getElementById('soundBtn').innerHTML =
+                '<span class="icon">' + (soundEnabled ? '🔊' : '🔇') + '</span>' + (soundEnabled ? '声音' : '静音');
+            if (soundEnabled) initAudio();
+        }
+
+        // ========== 背景星空 ==========
+        function resizeBg() {
+            bgCanvas.width = window.innerWidth;
+            bgCanvas.height = window.innerHeight;
+            createBgStars();
+        }
+        function createBgStars() {
+            bgStars = [];
+            var count = Math.floor((bgCanvas.width * bgCanvas.height) / 5000);
+            for (var i = 0; i < count; i++) {
+                bgStars.push({
+                    x: Math.random() * bgCanvas.width,
+                    y: Math.random() * bgCanvas.height,
+                    radius: Math.random() * 1.5 + 0.3,
+                    alpha: Math.random() * 0.8 + 0.2,
+                    speed: Math.random() * 0.3 + 0.05,
+                    twinkle: Math.random() * 0.03 + 0.01,
+                    phase: Math.random() * Math.PI * 2
+                });
+            }
+        }
+        var bgStars = [];
+        resizeBg();
+        window.addEventListener('resize', resizeBg);
+
+        function drawBg() {
+            bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+            bgCtx.fillStyle = '#020208';
+            bgCtx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
+            bgStars.forEach(function(star) {
+                star.phase += star.twinkle;
+                star.y += star.speed;
+                if (star.y > bgCanvas.height + 5) {
+                    star.y = -5;
+                    star.x = Math.random() * bgCanvas.width;
+                }
+                var alpha = star.alpha * (0.7 + 0.3 * Math.sin(star.phase));
+                bgCtx.beginPath();
+                bgCtx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                bgCtx.fillStyle = 'rgba(200,220,255,' + alpha + ')';
+                bgCtx.fill();
+            });
+        }
+
+        // ========== 波形 ==========
+        function resizeWave() {
+            waveCanvas.width = waveCanvas.parentElement.clientWidth;
+            waveCanvas.height = waveCanvas.parentElement.clientHeight;
+        }
+        resizeWave();
+        window.addEventListener('resize', resizeWave);
+
+        function generateWavePoint() {
+            var noise = (Math.random() - 0.5) * 0.25;
+            var base = Math.sin(scanAngle * 0.5) * 0.18 + Math.cos(scanAngle * 0.13) * 0.12;
+            var signal = signalActive ? signalStrength * (Math.sin(scanAngle * 2.5) + Math.sin(scanAngle * 4.2) * 0.4) : 0;
+            return Math.max(-0.9, Math.min(0.9, base + noise + signal));
+        }
+
+        function drawWave() {
+            var w = waveCanvas.width;
+            var h = waveCanvas.height;
+            var midY = h / 2;
+
+            waveCtx.clearRect(0, 0, w, h);
+
+            // 网格
+            waveCtx.strokeStyle = 'rgba(64,196,255,0.05)';
+            waveCtx.lineWidth = 1;
+            for (var i = 0; i < 4; i++) {
+                var gy = h * (i + 0.5) / 4;
+                waveCtx.beginPath();
+                waveCtx.moveTo(0, gy);
+                waveCtx.lineTo(w, gy);
+                waveCtx.stroke();
+            }
+
+            var amplitude = h * 0.32;
+            var step = w / 200;
+
+            // 填充
+            waveCtx.beginPath();
+            waveCtx.moveTo(0, midY);
+            for (var x = 0; x <= 200; x++) {
+                var idx = Math.floor(x * (waveHistory.length - 1) / 200);
+                if (idx < 0) idx = 0;
+                if (idx >= waveHistory.length) idx = waveHistory.length - 1;
+                waveCtx.lineTo(x * step, midY + waveHistory[idx] * amplitude);
+            }
+            waveCtx.lineTo(w, midY);
+            waveCtx.closePath();
+
+            var grad = waveCtx.createLinearGradient(0, midY - amplitude, 0, midY + amplitude);
+            if (signalActive) {
+                grad.addColorStop(0, 'rgba(255,183,77,0.25)');
+                grad.addColorStop(0.5, 'rgba(255,183,77,0.5)');
+                grad.addColorStop(1, 'rgba(255,183,77,0.25)');
+            } else {
+                grad.addColorStop(0, 'rgba(64,196,255,0.12)');
+                grad.addColorStop(0.5, 'rgba(64,196,255,0.3)');
+                grad.addColorStop(1, 'rgba(64,196,255,0.12)');
+            }
+            waveCtx.fillStyle = grad;
+            waveCtx.fill();
+
+            // 描边
+            waveCtx.beginPath();
+            for (var x2 = 0; x2 <= 200; x2++) {
+                var idx2 = Math.floor(x2 * (waveHistory.length - 1) / 200);
+                if (idx2 < 0) idx2 = 0;
+                if (idx2 >= waveHistory.length) idx2 = waveHistory.length - 1;
+                var yv = midY + waveHistory[idx2] * amplitude;
+                if (x2 === 0) waveCtx.moveTo(x2 * step, yv);
+                else waveCtx.lineTo(x2 * step, yv);
+            }
+            waveCtx.strokeStyle = signalActive ? 'rgba(255,183,77,0.85)' : 'rgba(64,196,255,0.6)';
+            waveCtx.lineWidth = 1.5;
+            waveCtx.stroke();
+
+            // 扫描线
+            var scanX = (Date.now() * 0.15) % w;
+            waveCtx.beginPath();
+            waveCtx.moveTo(scanX, 0);
+            waveCtx.lineTo(scanX, h);
+            waveCtx.strokeStyle = 'rgba(255,255,255,0.06)';
+            waveCtx.lineWidth = 1;
+            waveCtx.stroke();
+        }
+
+        function updateWave() {
+            scanAngle += 0.04;
+            waveHistory.push(generateWavePoint());
+            if (waveHistory.length > 300) waveHistory.shift();
+
+            var snr = signalActive ? Math.round(signalStrength * 35 + Math.random() * 5) : Math.round(Math.random() * 4);
+            waveInfo.textContent = 'SNR: ' + snr + ' dB' + (signalActive ? ' ⚡ 锁定中...' : '');
+        }
+
+        // ========== 频率系统 ==========
+        tunerSlider.addEventListener('input', function() {
+            currentFreq = parseFloat(this.value);
+            tunerValue.textContent = currentFreq.toFixed(0) + ' MHz';
+            checkFreqMatch();
+        });
+
+        function checkFreqMatch() {
+            if (signalActive || !scanning) return;
+            // 检查是否有信号在当前频率附近
+            var matchedSignal = null;
+            for (var i = 0; i < signalDatabase.length; i++) {
+                var sig = signalDatabase[i];
+                if (Math.abs(currentFreq - sig.freq) < signalFreqRange) {
+                    matchedSignal = sig;
+                    break;
+                }
+            }
+            if (matchedSignal && Math.random() < 0.02) {
+                // 在正确频率附近随机触发信号
+                beginSignalDetection(matchedSignal);
+            }
+        }
+
+        function beginSignalDetection(signalData) {
+            signalActive = true;
+            signalStrength = 0.4;
+            activeSignalData = signalData;
+            document.getElementById('signalAlert').classList.add('show');
+            if (navigator.vibrate) navigator.vibrate([15, 30, 15]);
+            playStatic(0.5);
+
+            // 信号逐渐增强
+            var enhanceInterval = setInterval(function() {
+                if (!signalActive) {
+                    clearInterval(enhanceInterval);
+                    return;
+                }
+                signalStrength = Math.min(1, signalStrength + 0.05);
+                if (signalStrength >= 0.9 && autoDecode) {
+                    clearInterval(enhanceInterval);
+                    decodeSignal(signalData);
+                }
+            }, 100);
+
+            // 信号持续后自动消失
+            setTimeout(function() {
+                if (signalActive) {
+                    signalActive = false;
+                    activeSignalData = null;
+                    document.getElementById('signalAlert').classList.remove('show');
+                }
+            }, 6000);
+        }
+
+        function forceSignal() {
+            if (signalActive) return;
+            // 找到与当前频率最接近的信号
+            var closestSignal = signalDatabase[0];
+            var closestDist = Infinity;
+            signalDatabase.forEach(function(sig) {
+                var dist = Math.abs(currentFreq - sig.freq);
+                if (dist < closestDist) {
+                    closestDist = dist;
+                    closestSignal = sig;
+                }
+            });
+            // 如果距离太远，生成一个随机信号
+            if (closestDist > 150) {
+                closestSignal = signalDatabase[Math.floor(Math.random() * signalDatabase.length)];
+            }
+            beginSignalDetection(closestSignal);
+        }
+
+        // ========== 信号解码 ==========
+        function decodeSignal(signalData) {
+            if (collectedSignals.has(signalData.id)) {
+                // 已经收集过，只显示
+            } else {
+                collectedSignals.add(signalData.id);
+                renderCollection();
+                updateCollectCount();
+            }
+
+            // 设置弹窗内容
+            var rarityClass = 'rarity-' + signalData.rarity;
+            var rarityLabel = { common: '普通信号', uncommon: '稀有信号', rare: '神秘信号', legendary: '传奇信号' }[signalData.rarity];
+            decodeRarity.className = 'decode-rarity ' + rarityClass;
+            decodeRarity.textContent = rarityLabel;
+            decodeIcon.textContent = signalData.icon;
+            decodeTitle.textContent = signalData.title + ' · ' + signalData.freq + ' MHz';
+            decodeText.textContent = signalData.text;
+            decodeCanvasWrap.style.display = 'none';
+
+            // 播放解码音效
+            playBeep(800, 0.1, 0.15);
+            setTimeout(function() { playBeep(1200, 0.1, 0.15); }, 150);
+            setTimeout(function() { playBeep(1600, 0.15, 0.2); }, 300);
+
+            decodeOverlay.classList.add('open');
+            signalActive = false;
+            activeSignalData = null;
+            document.getElementById('signalAlert').classList.remove('show');
+        }
+
+        function closeDecode(e) {
+            if (e && e.target !== decodeOverlay) return;
+            decodeOverlay.classList.remove('open');
+        }
+
+        function toggleAutoDecode() {
+            autoDecode = !autoDecode;
+            document.getElementById('autoBtn').innerHTML =
+                '<span class="icon">🔓</span>' + (autoDecode ? '自动开' : '自动关');
+        }
+
+        function toggleScan() {
+            scanning = !scanning;
+            document.getElementById('scanBtn').innerHTML =
+                '<span class="icon">' + (scanning ? '📡' : '⏸') + '</span>' + (scanning ? '扫描' : '暂停');
+            if (!scanning) {
+                signalActive = false;
+                document.getElementById('signalAlert').classList.remove('show');
+            }
+        }
+
+        // ========== 图鉴 ==========
+        function renderCollection() {
+            collectionGrid.innerHTML = '';
+            signalDatabase.forEach(function(sig) {
+                var div = document.createElement('div');
+                div.className = 'collection-item' + (collectedSignals.has(sig.id) ? '' : ' locked');
+                div.innerHTML = '<span>' + sig.icon + '</span>' +
+                    '<div class="rarity-dot" style="background:' + getRarityColor(sig.rarity) + '"></div>';
+                if (collectedSignals.has(sig.id)) {
+                    div.onclick = function() {
+                        showCollectedSignal(sig);
+                    };
+                } else {
+                    div.title = '未发现 · ' + sig.freq + ' MHz 附近';
+                }
+                collectionGrid.appendChild(div);
+            });
+            updateCollectCount();
+        }
+
+        function getRarityColor(rarity) {
+            switch(rarity) {
+                case 'common': return '#90caf9';
+                case 'uncommon': return '#69f0ae';
+                case 'rare': return '#b388ff';
+                case 'legendary': return '#ffd700';
+                default: return '#fff';
+            }
+        }
+
+        function showCollectedSignal(sig) {
+            decodeRarity.className = 'decode-rarity rarity-' + sig.rarity;
+            decodeRarity.textContent = { common: '普通信号', uncommon: '稀有信号', rare: '神秘信号', legendary: '传奇信号' }[sig.rarity];
+            decodeIcon.textContent = sig.icon;
+            decodeTitle.textContent = sig.title + ' · ' + sig.freq + ' MHz';
+            decodeText.textContent = sig.text;
+            decodeCanvasWrap.style.display = 'none';
+            decodeOverlay.classList.add('open');
+        }
+
+        function updateCollectCount() {
+            document.getElementById('collectCount').textContent = collectedSignals.size + '/' + signalDatabase.length;
+        }
+
+        function clearCollection() {
+            collectedSignals.clear();
+            renderCollection();
+            updateCollectCount();
+            playBeep(200, 0.2, 0.1);
+        }
+
+        // ========== 频率显示平滑 ==========
+        function updateFreqDisplay() {
+            targetFreq = currentFreq;
+            freqDisplay.textContent = targetFreq.toFixed(2) + ' MHz';
+        }
+
+        // ========== 主循环 ==========
+        function mainLoop() {
+            drawBg();
+            updateWave();
+            drawWave();
+            updateFreqDisplay();
+            requestAnimationFrame(mainLoop);
+        }
+
+        // ========== 键盘 ==========
+        document.addEventListener('keydown', function(e) {
+            if (e.key === ' ') { e.preventDefault(); forceSignal(); }
+            if (e.key === 'a' || e.key === 'A') { toggleAutoDecode(); }
+            if (e.key === 's' || e.key === 'S') { toggleScan(); }
+            if (e.key === 'ArrowLeft') { tunerSlider.value = Math.max(1000, parseFloat(tunerSlider.value) - 50); tunerSlider.dispatchEvent(new Event('input')); }
+            if (e.key === 'ArrowRight') { tunerSlider.value = Math.min(6000, parseFloat(tunerSlider.value) + 50); tunerSlider.dispatchEvent(new Event('input')); }
+        });
+
+        // ========== 触摸 ==========
+        waveCanvas.parentElement.addEventListener('dblclick', function() { forceSignal(); });
+
+        // ========== 启动 ==========
+        renderCollection();
+        updateCollectCount();
+        mainLoop();
+
+        console.log('📡 星际信号接收器 v2 已启动');
+        console.log('🎯 调谐到正确频率发现信号 | 空格=锁定 | A=自动 | 方向键=调频');
+        console.log('📚 共 15 种信号，不同频率不同稀有度');
+    </script>
+</body>
+</html>
