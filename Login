@@ -1,0 +1,1559 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - 账号验证系统</title>
+    <style>
+        :root {
+            --primary: #4f7cff;
+            --primary-dark: #3a5fd9;
+            --primary-light: #e8eeff;
+            --success: #22c55e;
+            --success-light: #ecfdf5;
+            --danger: #ef4444;
+            --danger-light: #fef2f2;
+            --warning: #f59e0b;
+            --warning-light: #fffbeb;
+            --text: #1a1a2e;
+            --text-secondary: #6b7280;
+            --text-light: #9ca3af;
+            --bg: #f0f4ff;
+            --card-bg: #ffffff;
+            --border: #e5e7eb;
+            --shadow: 0 20px 60px rgba(79, 124, 255, 0.12);
+            --shadow-sm: 0 4px 16px rgba(0, 0, 0, 0.06);
+            --radius: 16px;
+            --radius-sm: 10px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --wechat-color: #07c160;
+            --qq-color: #12b7f5;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+                'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: var(--bg);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-image:
+                radial-gradient(ellipse at 20% 20%, rgba(79, 124, 255, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(34, 197, 94, 0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 50%, rgba(18, 183, 245, 0.04) 0%, transparent 50%);
+            padding: 20px;
+            position: relative;
+        }
+
+        body::before,
+        body::after {
+            content: '';
+            position: fixed;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.5;
+        }
+        body::before {
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(79, 124, 255, 0.15), transparent 70%);
+            top: -80px;
+            right: -80px;
+            animation: floatParticle 8s ease-in-out infinite;
+        }
+        body::after {
+            width: 250px;
+            height: 250px;
+            background: radial-gradient(circle, rgba(34, 197, 94, 0.12), transparent 70%);
+            bottom: -60px;
+            left: -60px;
+            animation: floatParticle 10s ease-in-out infinite reverse;
+        }
+
+        @keyframes floatParticle {
+            0%,
+            100% {
+                transform: translate(0, 0);
+            }
+            50% {
+                transform: translate(20px, -20px);
+            }
+        }
+
+        .login-container {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 40px 36px;
+            width: 100%;
+            max-width: 440px;
+            position: relative;
+            z-index: 1;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            animation: slideUp 0.5s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .login-logo {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--primary), #6b9aff);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+            font-size: 28px;
+            color: #fff;
+            box-shadow: 0 8px 24px rgba(79, 124, 255, 0.35);
+            animation: pulseLogo 2s ease-in-out infinite;
+        }
+
+        @keyframes pulseLogo {
+            0%,
+            100% {
+                box-shadow: 0 8px 24px rgba(79, 124, 255, 0.35);
+            }
+            50% {
+                box-shadow: 0 8px 32px rgba(79, 124, 255, 0.55);
+            }
+        }
+
+        .login-header h1 {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: -0.3px;
+        }
+
+        .login-header p {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 6px;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+            position: relative;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 6px;
+            letter-spacing: 0.2px;
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            border: 2px solid var(--border);
+            border-radius: var(--radius-sm);
+            transition: var(--transition);
+            background: #fafbfc;
+        }
+
+        .input-wrapper:focus-within {
+            border-color: var(--primary);
+            background: #fff;
+            box-shadow: 0 0 0 4px rgba(79, 124, 255, 0.1);
+        }
+
+        .input-wrapper.error {
+            border-color: var(--danger);
+            background: var(--danger-light);
+            box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.08);
+        }
+
+        .input-wrapper.success {
+            border-color: var(--success);
+            background: var(--success-light);
+            box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.08);
+        }
+
+        .input-icon {
+            padding: 0 12px;
+            font-size: 18px;
+            color: var(--text-light);
+            flex-shrink: 0;
+            transition: var(--transition);
+        }
+
+        .input-wrapper:focus-within .input-icon {
+            color: var(--primary);
+        }
+
+        .input-wrapper input {
+            flex: 1;
+            padding: 13px 12px 13px 0;
+            border: none;
+            background: transparent;
+            font-size: 15px;
+            color: var(--text);
+            outline: none;
+            letter-spacing: 0.3px;
+            min-width: 0;
+        }
+
+        .input-wrapper input::placeholder {
+            color: var(--text-light);
+            font-size: 14px;
+        }
+
+        .captcha-btn {
+            flex-shrink: 0;
+            padding: 8px 14px;
+            margin-right: 8px;
+            border: none;
+            background: var(--primary-light);
+            color: var(--primary);
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: var(--transition);
+            white-space: nowrap;
+            letter-spacing: 0.3px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .captcha-btn:hover:not(:disabled) {
+            background: var(--primary);
+            color: #fff;
+            transform: scale(1.02);
+        }
+        .captcha-btn:active:not(:disabled) {
+            transform: scale(0.97);
+        }
+        .captcha-btn:disabled {
+            background: #f3f4f6;
+            color: var(--text-light);
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        /* 验证码提示条 */
+        .code-hint {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+            padding: 10px 14px;
+            background: var(--warning-light);
+            border: 1px solid #fde68a;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #92400e;
+            font-weight: 500;
+            animation: fadeIn 0.3s ease-out;
+        }
+        .code-hint.visible {
+            display: flex;
+        }
+        .code-hint .hint-code {
+            font-weight: 700;
+            font-size: 16px;
+            letter-spacing: 2px;
+            background: #fff;
+            padding: 2px 10px;
+            border-radius: 4px;
+            border: 1px dashed #fbbf24;
+            color: #b45309;
+            user-select: all;
+            cursor: pointer;
+        }
+        .code-hint .hint-copy {
+            font-size: 12px;
+            color: var(--primary);
+            cursor: pointer;
+            text-decoration: underline;
+            white-space: nowrap;
+        }
+
+        /* 滑块验证 */
+        .slider-captcha {
+            margin-bottom: 18px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 16px 14px;
+            background: #fafbfc;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+        .slider-captcha.verified {
+            border-color: var(--success);
+            background: var(--success-light);
+            box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.08);
+        }
+        .slider-captcha .slider-label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+        .slider-captcha .slider-label span {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .slider-captcha .slider-status {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-light);
+            transition: var(--transition);
+        }
+        .slider-captcha.verified .slider-status {
+            color: var(--success);
+            font-weight: 600;
+        }
+        .slider-track {
+            position: relative;
+            height: 44px;
+            background: #e8ecf4;
+            border-radius: 22px;
+            cursor: pointer;
+            user-select: none;
+            touch-action: none;
+            overflow: hidden;
+            transition: var(--transition);
+        }
+        .slider-track-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 0;
+            background: linear-gradient(90deg, #4f7cff, #6b9aff);
+            border-radius: 22px;
+            /* 移除过渡，避免填充条更新滞后 */
+            transition: none;
+            opacity: 0.85;
+            will-change: width;
+        }
+        .slider-thumb {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            transform: translate(0, -50%);
+            width: 40px;
+            height: 40px;
+            background: #fff;
+            border-radius: 50%;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: var(--primary);
+            /* 拖动时我们通过 JS 动态设置 transition，这里设为 none 保证拖动无延迟 */
+            transition: none;
+            cursor: grab;
+            z-index: 2;
+            border: 2px solid var(--primary-light);
+            outline: none;
+            will-change: left;
+        }
+        .slider-thumb:active {
+            cursor: grabbing;
+            transform: translate(0, -50%) scale(1.05);
+            box-shadow: 0 6px 20px rgba(79, 124, 255, 0.4);
+        }
+        .slider-thumb.dragging {
+            transform: translate(0, -50%) scale(1.08);
+            box-shadow: 0 8px 24px rgba(79, 124, 255, 0.5);
+        }
+        .slider-thumb:focus-visible {
+            box-shadow: 0 0 0 4px rgba(79, 124, 255, 0.3);
+        }
+        .slider-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            pointer-events: none;
+            white-space: nowrap;
+            letter-spacing: 0.5px;
+            transition: var(--transition);
+            z-index: 1;
+        }
+        .slider-track.verified-state .slider-text {
+            color: var(--success);
+            font-weight: 600;
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            background: linear-gradient(135deg, var(--primary), #6b9aff);
+            color: #fff;
+            font-size: 16px;
+            font-weight: 700;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: var(--transition);
+            letter-spacing: 0.5px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(79, 124, 255, 0.35);
+        }
+        .login-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 28px rgba(79, 124, 255, 0.45);
+        }
+        .login-btn:active:not(:disabled) {
+            transform: translateY(0);
+            box-shadow: 0 2px 8px rgba(79, 124, 255, 0.3);
+        }
+        .login-btn:disabled {
+            background: #d1d5db;
+            box-shadow: none;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .login-btn .btn-loading {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .login-btn.loading .btn-text {
+            display: none;
+        }
+        .login-btn.loading .btn-loading {
+            display: flex;
+        }
+        .spinner {
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .agreement {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            margin: 16px 0 12px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            user-select: none;
+        }
+        .agreement input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            margin-top: 1px;
+            accent-color: var(--primary);
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .agreement a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        .agreement a:hover {
+            text-decoration: underline;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 20px 0 16px;
+            gap: 12px;
+        }
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+        .divider span {
+            font-size: 12px;
+            color: var(--text-light);
+            font-weight: 500;
+            white-space: nowrap;
+            letter-spacing: 0.5px;
+        }
+
+        .social-login {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+        }
+        .social-btn {
+            flex: 1;
+            max-width: 140px;
+            padding: 11px 16px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: #fff;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            letter-spacing: 0.3px;
+            position: relative;
+            overflow: hidden;
+        }
+        .social-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-sm);
+        }
+        .social-btn:active {
+            transform: translateY(0);
+        }
+        .social-btn .social-icon {
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+        .social-btn.wechat {
+            color: var(--wechat-color);
+            border-color: #b7ebd0;
+        }
+        .social-btn.wechat:hover {
+            background: #f0fdf6;
+            border-color: var(--wechat-color);
+            box-shadow: 0 4px 16px rgba(7, 193, 96, 0.2);
+        }
+        .social-btn.qq {
+            color: var(--qq-color);
+            border-color: #c8eafb;
+        }
+        .social-btn.qq:hover {
+            background: #f0faff;
+            border-color: var(--qq-color);
+            box-shadow: 0 4px 16px rgba(18, 183, 245, 0.2);
+        }
+
+        .toast {
+            position: fixed;
+            top: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-80px);
+            background: var(--text);
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            z-index: 1000;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            pointer-events: none;
+            letter-spacing: 0.3px;
+            max-width: 90vw;
+        }
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+        .toast.success {
+            background: var(--success);
+        }
+        .toast.error {
+            background: var(--danger);
+        }
+        .toast.info {
+            background: var(--primary);
+        }
+        .toast.warning {
+            background: var(--warning);
+        }
+
+        .field-error {
+            font-size: 12px;
+            color: var(--danger);
+            margin-top: 4px;
+            display: none;
+            font-weight: 500;
+        }
+        .field-error.visible {
+            display: block;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-4px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 模态框通用 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.55);
+            z-index: 999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(4px);
+            animation: fadeInOverlay 0.3s ease-out;
+            padding: 20px;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+        @keyframes fadeInOverlay {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        .modal {
+            background: #fff;
+            border-radius: var(--radius);
+            padding: 32px 28px;
+            max-width: 420px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: modalPop 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        @keyframes modalPop {
+            from {
+                opacity: 0;
+                transform: scale(0.85);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        .modal .modal-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: var(--success-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+            font-size: 32px;
+        }
+        .modal h3 {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+        .modal p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+        .modal .modal-btn {
+            padding: 12px 32px;
+            border: none;
+            background: linear-gradient(135deg, var(--primary), #6b9aff);
+            color: #fff;
+            font-size: 15px;
+            font-weight: 600;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: 0 4px 16px rgba(79, 124, 255, 0.35);
+        }
+        .modal .modal-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(79, 124, 255, 0.45);
+        }
+        .modal .modal-btn.secondary {
+            background: #f3f4f6;
+            color: var(--text-secondary);
+            box-shadow: none;
+            margin-left: 8px;
+        }
+        .modal .modal-btn.secondary:hover {
+            background: #e5e7eb;
+            transform: translateY(-1px);
+            box-shadow: none;
+        }
+        .modal .modal-btn-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        /* 协议内容模态框 */
+        .agreement-content {
+            text-align: left;
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.8;
+            max-height: 50vh;
+            overflow-y: auto;
+            padding: 0 4px;
+            margin-bottom: 16px;
+        }
+        .agreement-content h4 {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text);
+            margin: 16px 0 8px;
+        }
+        .agreement-content h4:first-child {
+            margin-top: 0;
+        }
+        .agreement-content p {
+            margin-bottom: 8px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.8;
+        }
+
+        /* 第三方登录模拟模态框 */
+        .social-modal-icon {
+            width: 72px;
+            height: 72px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+            font-size: 36px;
+        }
+        .social-modal-icon.wechat-bg {
+            background: #e8faf0;
+        }
+        .social-modal-icon.qq-bg {
+            background: #e8f4fd;
+        }
+        .social-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: #e0e7ff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            margin: 0 auto 12px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        .social-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text);
+        }
+        .social-desc {
+            font-size: 13px;
+            color: var(--text-light);
+            margin-top: 4px;
+        }
+
+        @media (max-width: 480px) {
+            .login-container {
+                padding: 28px 20px;
+                border-radius: 14px;
+            }
+            .login-header h1 {
+                font-size: 19px;
+            }
+            .social-btn {
+                font-size: 13px;
+                padding: 10px 12px;
+            }
+            .social-btn .social-icon {
+                font-size: 18px;
+            }
+            .slider-track {
+                height: 40px;
+            }
+            .slider-thumb {
+                width: 36px;
+                height: 36px;
+            }
+            .modal {
+                padding: 24px 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Toast 提示 -->
+    <div class="toast" id="toast"></div>
+
+    <!-- 成功登录弹窗 -->
+    <div class="modal-overlay" id="successModal">
+        <div class="modal">
+            <div class="modal-icon">✅</div>
+            <h3>登录成功！</h3>
+            <p id="modalMessage">欢迎回来，您已通过人机身份验证。</p>
+            <button class="modal-btn" onclick="closeModal('successModal')">确定</button>
+        </div>
+    </div>
+
+    <!-- 用户协议模态框 -->
+    <div class="modal-overlay" id="agreementModal">
+        <div class="modal">
+            <div class="modal-icon" style="background:#e0e7ff;">📄</div>
+            <h3>用户协议</h3>
+            <div class="agreement-content" id="agreementContent">
+                <h4>1. 服务条款</h4>
+                <p>欢迎使用本平台服务。在使用本服务前，请您仔细阅读本协议的全部内容。您勾选"同意"即表示您已充分理解并接受本协议的全部条款。</p>
+                <h4>2. 账号注册与安全</h4>
+                <p>您需使用本人手机号进行注册。您应妥善保管账号信息，不得将账号转让或出借给他人使用。因您保管不善导致的损失由您自行承担。</p>
+                <h4>3. 用户行为规范</h4>
+                <p>您承诺在使用本服务过程中遵守法律法规，不发布违法、违规信息，不侵犯他人合法权益，不进行任何危害网络安全的行为。</p>
+                <h4>4. 隐私保护</h4>
+                <p>我们重视您的个人信息安全，将按照《隐私政策》的规定收集、使用和保护您的个人信息。未经您的同意，我们不会向第三方披露您的个人信息。</p>
+                <h4>5. 免责声明</h4>
+                <p>因不可抗力、网络故障、系统维护等原因导致的服务中断或数据丢失，本公司不承担赔偿责任，但将尽力减少因此给您造成的损失。</p>
+                <h4>6. 协议修改</h4>
+                <p>我们有权根据业务需要适时修订本协议。修订后的协议将在页面公示，若您继续使用服务则视为接受修订后的协议。</p>
+            </div>
+            <div class="modal-btn-group">
+                <button class="modal-btn" onclick="closeModal('agreementModal')">我已阅读并同意</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 隐私政策模态框 -->
+    <div class="modal-overlay" id="privacyModal">
+        <div class="modal">
+            <div class="modal-icon" style="background:#fef3c7;">🔒</div>
+            <h3>隐私政策</h3>
+            <div class="agreement-content">
+                <h4>1. 信息收集</h4>
+                <p>我们收集您主动提供的手机号、验证码等信息，用于身份验证和账号安全。在您使用第三方登录时，我们仅获取必要的授权信息。</p>
+                <h4>2. 信息使用</h4>
+                <p>您的信息仅用于提供登录服务、账号安全保护和产品优化。我们不会将您的个人信息出售给任何第三方。</p>
+                <h4>3. 信息存储</h4>
+                <p>您的信息存储于境内服务器，采用加密传输和安全存储技术。我们仅在实现服务目的所必需的期限内保留您的信息。</p>
+                <h4>4. 信息共享</h4>
+                <p>除法律法规要求或经您明确同意外，我们不会与任何第三方共享您的个人信息。第三方登录合作伙伴仅获取必要的授权令牌。</p>
+                <h4>5. 您的权利</h4>
+                <p>您有权查询、更正、删除您的个人信息，有权撤回授权同意。您可以通过联系客服行使上述权利。</p>
+                <h4>6. 未成年人保护</h4>
+                <p>我们非常重视未成年人个人信息保护。若您为未成年人，请在监护人指导下使用本服务。</p>
+            </div>
+            <div class="modal-btn-group">
+                <button class="modal-btn" onclick="closeModal('privacyModal')">我知道了</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 微信登录模拟模态框 -->
+    <div class="modal-overlay" id="wechatModal">
+        <div class="modal">
+            <div class="social-modal-icon wechat-bg">💬</div>
+            <h3>微信授权登录</h3>
+            <p style="margin-bottom:16px;">请确认授权以下信息用于登录：</p>
+            <div class="social-avatar">👤</div>
+            <div class="social-name">微信用户_8888</div>
+            <div class="social-desc">微信ID: wx_demo_2026</div>
+            <p style="margin-top:16px;font-size:12px;color:var(--text-light);">仅获取头像、昵称及手机号（需您同意）</p>
+            <div class="modal-btn-group" style="margin-top:16px;">
+                <button class="modal-btn" style="background:var(--wechat-color);" onclick="completeThirdPartyLogin('微信')">同意授权登录</button>
+                <button class="modal-btn secondary" onclick="closeModal('wechatModal')">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- QQ登录模拟模态框 -->
+    <div class="modal-overlay" id="qqModal">
+        <div class="modal">
+            <div class="social-modal-icon qq-bg">🐧</div>
+            <h3>QQ授权登录</h3>
+            <p style="margin-bottom:16px;">请确认授权以下信息用于登录：</p>
+            <div class="social-avatar" style="background:#e0f2fe;">🐧</div>
+            <div class="social-name">QQ用户_666666</div>
+            <div class="social-desc">QQ号: 123456789</div>
+            <p style="margin-top:16px;font-size:12px;color:var(--text-light);">仅获取头像、昵称及手机号（需您同意）</p>
+            <div class="modal-btn-group" style="margin-top:16px;">
+                <button class="modal-btn" style="background:var(--qq-color);" onclick="completeThirdPartyLogin('QQ')">同意授权登录</button>
+                <button class="modal-btn secondary" onclick="closeModal('qqModal')">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 登录主容器 -->
+    <div class="login-container">
+        <div class="login-header">
+            <div class="login-logo">🔐</div>
+            <h1>账号登录</h1>
+            <p>请验证您的身份以继续访问</p>
+        </div>
+
+        <form id="loginForm" novalidate>
+            <!-- 手机号 -->
+            <div class="form-group">
+                <label>手机号</label>
+                <div class="input-wrapper" id="phoneWrapper">
+                    <span class="input-icon">📱</span>
+                    <input
+                    type="tel"
+                    id="phoneInput"
+                    placeholder="请输入11位手机号"
+                    maxlength="11"
+                    autocomplete="tel"
+                    inputmode="numeric"
+                    pattern="[0-9]*"
+                    />
+                </div>
+                <div class="field-error" id="phoneError">请输入正确的11位手机号</div>
+            </div>
+
+            <!-- 短信验证码 -->
+            <div class="form-group">
+                <label>短信验证码</label>
+                <div class="input-wrapper" id="codeWrapper">
+                    <span class="input-icon">✉️</span>
+                    <input
+                    type="text"
+                    id="codeInput"
+                    placeholder="请输入6位验证码"
+                    maxlength="6"
+                    autocomplete="one-time-code"
+                    inputmode="numeric"
+                    pattern="[0-9]*"
+                    />
+                    <button type="button" class="captcha-btn" id="sendCodeBtn" onclick="sendCode()">获取验证码</button>
+                </div>
+                <div class="field-error" id="codeError">请输入正确的6位验证码</div>
+                <!-- 验证码展示条 -->
+                <div class="code-hint" id="codeHint">
+                    <span>📩 模拟验证码：</span>
+                    <span class="hint-code" id="hintCode">------</span>
+                    <span class="hint-copy" onclick="copyCode()">复制</span>
+                </div>
+            </div>
+
+            <!-- 人机滑块验证 -->
+            <div class="slider-captcha" id="sliderCaptcha">
+                <div class="slider-label">
+                    <span>🛡️ 人机身份验证</span>
+                    <span class="slider-status" id="sliderStatus">请拖动滑块完成验证</span>
+                </div>
+                <div class="slider-track" id="sliderTrack">
+                    <div class="slider-track-fill" id="sliderFill"></div>
+                    <div class="slider-text" id="sliderText">→ 向右拖动滑块 ←</div>
+                    <div class="slider-thumb" id="sliderThumb" tabindex="0" role="slider" aria-label="人机身份验证滑块">🔹</div>
+                </div>
+            </div>
+
+            <!-- 用户协议 -->
+            <label class="agreement">
+                <input type="checkbox" id="agreeCheckbox" />
+                <span>我已阅读并同意
+                    <a href="javascript:void(0)" onclick="openAgreementModal()">《用户协议》</a> 和
+                    <a href="javascript:void(0)" onclick="openPrivacyModal()">《隐私政策》</a>
+                </span>
+            </label>
+
+            <!-- 登录按钮 -->
+            <button type="submit" class="login-btn" id="loginBtn">
+                <span class="btn-text">登 录</span>
+                <span class="btn-loading">
+                    <span class="spinner"></span>
+                    验证中...
+                </span>
+            </button>
+        </form>
+
+        <!-- 分割线 -->
+        <div class="divider">
+            <span>或使用第三方登录</span>
+        </div>
+
+        <!-- 第三方登录 -->
+        <div class="social-login">
+            <button type="button" class="social-btn wechat" onclick="openWechatLogin()">
+                <span class="social-icon">💬</span>
+                微信登录
+            </button>
+            <button type="button" class="social-btn qq" onclick="openQQLogin()">
+                <span class="social-icon">🐧</span>
+                QQ登录
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // ==================== 全局状态 ====================
+        let sliderVerified = false;
+        let captchaSent = false;
+        let sentCode = '';
+        let countdownTimer = null;
+        let isDragging = false;
+        let dragStartX = 0;
+        let thumbStartLeft = 0;
+        let sliderMaxLeft = 0;
+        let toastTimeout = null;
+
+        // 滑块宽度常量（与CSS中一致）
+        const SLIDER_THUMB_WIDTH = 40; // 默认桌面宽度
+        let actualThumbWidth = SLIDER_THUMB_WIDTH;
+
+        // ==================== DOM 元素 ====================
+        const phoneInput = document.getElementById('phoneInput');
+        const codeInput = document.getElementById('codeInput');
+        const phoneWrapper = document.getElementById('phoneWrapper');
+        const codeWrapper = document.getElementById('codeWrapper');
+        const phoneError = document.getElementById('phoneError');
+        const codeError = document.getElementById('codeError');
+        const sendCodeBtn = document.getElementById('sendCodeBtn');
+        const loginBtn = document.getElementById('loginBtn');
+        const agreeCheckbox = document.getElementById('agreeCheckbox');
+        const sliderCaptcha = document.getElementById('sliderCaptcha');
+        const sliderTrack = document.getElementById('sliderTrack');
+        const sliderFill = document.getElementById('sliderFill');
+        const sliderThumb = document.getElementById('sliderThumb');
+        const sliderText = document.getElementById('sliderText');
+        const sliderStatus = document.getElementById('sliderStatus');
+        const toast = document.getElementById('toast');
+        const codeHint = document.getElementById('codeHint');
+        const hintCode = document.getElementById('hintCode');
+        const loginForm = document.getElementById('loginForm');
+
+        // ==================== Toast 提示 ====================
+        function showToast(message, type = 'info', duration = 4000) {
+            toast.textContent = message;
+            toast.className = 'toast ' + type;
+            toast.classList.add('show');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.remove('show');
+            }, duration);
+        }
+
+        // ==================== 手机号验证 ====================
+        function validatePhone(phone) {
+            return /^1[3-9]\d{9}$/.test(phone);
+        }
+
+        phoneInput.addEventListener('input', function() {
+            this.value = this.value.replace(/\D/g, '');
+            if (this.value.length > 11) {
+                this.value = this.value.slice(0, 11);
+            }
+            if (this.value.length === 11 && validatePhone(this.value)) {
+                phoneWrapper.classList.remove('error');
+                phoneWrapper.classList.add('success');
+                phoneError.classList.remove('visible');
+            } else if (this.value.length > 0 && this.value.length < 11) {
+                phoneWrapper.classList.remove('success');
+                phoneWrapper.classList.remove('error');
+                phoneError.classList.remove('visible');
+            } else if (this.value.length === 11 && !validatePhone(this.value)) {
+                phoneWrapper.classList.add('error');
+                phoneWrapper.classList.remove('success');
+                phoneError.classList.add('visible');
+            }
+        });
+
+        phoneInput.addEventListener('blur', function() {
+            if (this.value.length > 0 && !validatePhone(this.value)) {
+                phoneWrapper.classList.add('error');
+                phoneError.classList.add('visible');
+            } else if (this.value.length === 0) {
+                phoneWrapper.classList.remove('error');
+                phoneError.classList.remove('visible');
+            }
+        });
+
+        // ==================== 发送验证码 ====================
+        function sendCode() {
+            const phone = phoneInput.value.trim();
+            if (!validatePhone(phone)) {
+                phoneWrapper.classList.add('error');
+                phoneError.classList.add('visible');
+                phoneInput.focus();
+                showToast('请先输入正确的手机号', 'error', 3000);
+                return;
+            }
+
+            sentCode = String(Math.floor(100000 + Math.random() * 900000));
+            captchaSent = true;
+            console.log('📱 模拟验证码:', sentCode);
+
+            hintCode.textContent = sentCode;
+            codeHint.classList.add('visible');
+
+            let countdown = 60;
+            sendCodeBtn.disabled = true;
+            sendCodeBtn.textContent = countdown + 's 后重发';
+            sendCodeBtn.style.fontSize = '12px';
+
+            countdownTimer = setInterval(() => {
+                countdown--;
+                if (countdown <= 0) {
+                    clearInterval(countdownTimer);
+                    sendCodeBtn.disabled = false;
+                    sendCodeBtn.textContent = '获取验证码';
+                    sendCodeBtn.style.fontSize = '';
+                } else {
+                    sendCodeBtn.textContent = countdown + 's 后重发';
+                }
+            }, 1000);
+
+            showToast('验证码已发送，请查看下方提示', 'success', 5000);
+            codeInput.focus();
+        }
+
+        // ==================== 复制验证码 ====================
+        function copyCode() {
+            if (!sentCode) return;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(sentCode).then(() => {
+                    showToast('验证码已复制到剪贴板', 'success', 2000);
+                }).catch(() => {
+                    fallbackCopy(sentCode);
+                });
+            } else {
+                fallbackCopy(sentCode);
+            }
+        }
+
+        function fallbackCopy(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                showToast('验证码已复制', 'success', 2000);
+            } catch (e) {
+                showToast('请手动记录：' + text, 'warning', 4000);
+            }
+            document.body.removeChild(textarea);
+        }
+
+        // ==================== 验证码输入验证 ====================
+        codeInput.addEventListener('input', function() {
+            this.value = this.value.replace(/\D/g, '');
+            if (this.value.length > 6) {
+                this.value = this.value.slice(0, 6);
+            }
+            if (this.value.length === 6 && captchaSent && this.value === sentCode) {
+                codeWrapper.classList.remove('error');
+                codeWrapper.classList.add('success');
+                codeError.classList.remove('visible');
+                showToast('验证码正确！', 'success', 2000);
+            } else if (this.value.length === 6) {
+                codeWrapper.classList.add('error');
+                codeWrapper.classList.remove('success');
+                codeError.classList.add('visible');
+                codeError.textContent = captchaSent ? '验证码不正确，请重新输入' : '请先获取验证码';
+            } else {
+                codeWrapper.classList.remove('success');
+                codeWrapper.classList.remove('error');
+                codeError.classList.remove('visible');
+            }
+        });
+
+        codeInput.addEventListener('blur', function() {
+            if (this.value.length === 6 && captchaSent && this.value !== sentCode) {
+                codeWrapper.classList.add('error');
+                codeError.classList.add('visible');
+            }
+        });
+
+        // ==================== 滑块人机验证（优化版） ====================
+        function initSlider() {
+            // 动态获取实际滑块宽度（响应式）
+            actualThumbWidth = sliderThumb.offsetWidth || SLIDER_THUMB_WIDTH;
+            sliderMaxLeft = sliderTrack.offsetWidth - actualThumbWidth - 4;
+            sliderThumb.style.left = '0px';
+            sliderFill.style.width = (actualThumbWidth / 2) + 'px'; // 初始填充宽度为滑块一半，看起来自然
+            sliderVerified = false;
+            sliderCaptcha.classList.remove('verified');
+            sliderTrack.classList.remove('verified-state');
+            sliderStatus.textContent = '请拖动滑块完成验证';
+            sliderText.textContent = '→ 向右拖动滑块 ←';
+            sliderStatus.style.color = '';
+            sliderText.style.color = '';
+            sliderThumb.style.color = '';
+            sliderThumb.style.cursor = 'grab';
+            // 确保无过渡
+            sliderThumb.style.transition = 'none';
+            sliderFill.style.transition = 'none';
+        }
+
+        function getThumbLeft() {
+            return parseFloat(sliderThumb.style.left) || 0;
+        }
+
+        function setThumbPosition(left) {
+            left = Math.max(0, Math.min(left, sliderMaxLeft));
+            sliderThumb.style.left = left + 'px';
+            // 填充条宽度 = 滑块左侧位置 + 滑块宽度的一半（让填充条中心对齐滑块中心）
+            sliderFill.style.width = (left + actualThumbWidth / 2) + 'px';
+            return left;
+        }
+
+        function checkSliderComplete() {
+            const left = getThumbLeft();
+            if (left >= sliderMaxLeft - 2) {
+                sliderVerified = true;
+                setThumbPosition(sliderMaxLeft);
+                sliderCaptcha.classList.add('verified');
+                sliderTrack.classList.add('verified-state');
+                sliderStatus.textContent = '✅ 验证通过';
+                sliderStatus.style.color = '#22c55e';
+                sliderText.textContent = '✓ 验证通过';
+                sliderText.style.color = '#22c55e';
+                sliderThumb.style.cursor = 'default';
+                sliderThumb.style.color = '#22c55e';
+                showToast('人机验证通过！', 'success', 3000);
+                return true;
+            }
+            return false;
+        }
+
+        // 开始拖动
+        function startDrag(clientX) {
+            if (sliderVerified) return;
+            isDragging = true;
+            dragStartX = clientX;
+            thumbStartLeft = getThumbLeft();
+            sliderThumb.classList.add('dragging');
+            // 拖动时完全禁用过渡，保证跟手
+            sliderThumb.style.transition = 'none';
+            sliderFill.style.transition = 'none';
+            document.body.style.cursor = 'grabbing';
+            document.body.style.userSelect = 'none';
+        }
+
+        // 拖动中
+        function moveDrag(clientX) {
+            if (!isDragging) return;
+            const deltaX = clientX - dragStartX;
+            setThumbPosition(thumbStartLeft + deltaX);
+        }
+
+        // 结束拖动
+        function endDrag() {
+            if (!isDragging) return;
+            isDragging = false;
+            sliderThumb.classList.remove('dragging');
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+
+            if (!sliderVerified) {
+                const complete = checkSliderComplete();
+                if (!complete && getThumbLeft() < sliderMaxLeft) {
+                    // 回弹动画：恢复过渡
+                    sliderThumb.style.transition = 'left 0.3s ease-out';
+                    sliderFill.style.transition = 'width 0.3s ease-out';
+                    setThumbPosition(0);
+                    // 动画结束后移除过渡
+                    setTimeout(() => {
+                        sliderThumb.style.transition = 'none';
+                        sliderFill.style.transition = 'none';
+                    }, 300);
+                    sliderStatus.textContent = '请拖动滑块完成验证';
+                } else if (complete) {
+                    // 验证通过，保持无过渡
+                    sliderThumb.style.transition = 'none';
+                    sliderFill.style.transition = 'none';
+                }
+            } else {
+                // 已经验证通过，保持无过渡
+                sliderThumb.style.transition = 'none';
+                sliderFill.style.transition = 'none';
+            }
+        }
+
+        // 鼠标事件
+        sliderThumb.addEventListener('mousedown', function(e) {
+            e.preventDefault();
+            startDrag(e.clientX);
+        });
+
+        document.addEventListener('mousemove', function(e) {
+            if (isDragging) {
+                e.preventDefault();
+                moveDrag(e.clientX);
+            }
+        });
+
+        document.addEventListener('mouseup', function() {
+            endDrag();
+        });
+
+        // 触摸事件
+        sliderThumb.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            startDrag(touch.clientX);
+        }, { passive: false });
+
+        document.addEventListener('touchmove', function(e) {
+            if (isDragging) {
+                e.preventDefault();
+                const touch = e.touches[0];
+                moveDrag(touch.clientX);
+            }
+        }, { passive: false });
+
+        document.addEventListener('touchend', function() {
+            endDrag();
+        });
+
+        // 键盘支持
+        sliderThumb.addEventListener('keydown', function(e) {
+            if (sliderVerified) return;
+            if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                sliderThumb.style.transition = 'none';
+                sliderFill.style.transition = 'none';
+                setThumbPosition(getThumbLeft() + 20);
+                checkSliderComplete();
+                if (!sliderVerified && getThumbLeft() >= sliderMaxLeft) {
+                    // 键盘到达最右端但未触发验证？检查
+                }
+            } else if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                sliderThumb.style.transition = 'none';
+                sliderFill.style.transition = 'none';
+                setThumbPosition(getThumbLeft() - 20);
+            } else if (e.key === 'Home') {
+                e.preventDefault();
+                sliderThumb.style.transition = 'none';
+                sliderFill.style.transition = 'none';
+                setThumbPosition(0);
+            } else if (e.key === 'End') {
+                e.preventDefault();
+                sliderThumb.style.transition = 'none';
+                sliderFill.style.transition = 'none';
+                setThumbPosition(sliderMaxLeft);
+                checkSliderComplete();
+            }
+        });
+
+        window.addEventListener('resize', function() {
+            if (!sliderVerified) {
+                initSlider();
+            } else {
+                actualThumbWidth = sliderThumb.offsetWidth || SLIDER_THUMB_WIDTH;
+                sliderMaxLeft = sliderTrack.offsetWidth - actualThumbWidth - 4;
+                setThumbPosition(sliderMaxLeft);
+            }
+        });
+
+        // ==================== 表单提交 ====================
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            handleLogin();
+        });
+
+        function handleLogin() {
+            const phone = phoneInput.value.trim();
+            let isValid = true;
+
+            if (!validatePhone(phone)) {
+                phoneWrapper.classList.add('error');
+                phoneError.classList.add('visible');
+                isValid = false;
+                showToast('请输入正确的手机号', 'error', 3000);
+            } else {
+                phoneWrapper.classList.remove('error');
+                phoneError.classList.remove('visible');
+            }
+
+            const code = codeInput.value.trim();
+            if (!captchaSent) {
+                codeWrapper.classList.add('error');
+                codeError.textContent = '请先获取短信验证码';
+                codeError.classList.add('visible');
+                isValid = false;
+                showToast('请先获取验证码', 'error', 3000);
+            } else if (code.length !== 6 || code !== sentCode) {
+                codeWrapper.classList.add('error');
+                codeError.textContent = '验证码不正确';
+                codeError.classList.add('visible');
+                isValid = false;
+                showToast('验证码不正确，请重新输入', 'error', 3000);
+            } else {
+                codeWrapper.classList.remove('error');
+                codeError.classList.remove('visible');
+            }
+
+            if (!sliderVerified) {
+                sliderCaptcha.classList.add('error');
+                sliderStatus.textContent = '⚠️ 请先完成人机验证';
+                sliderStatus.style.color = '#ef4444';
+                isValid = false;
+                showToast('请完成人机身份验证', 'error', 3000);
+            }
+
+            if (!agreeCheckbox.checked) {
+                isValid = false;
+                showToast('请先阅读并同意用户协议和隐私政策', 'warning', 4000);
+                return;
+            }
+
+            if (!isValid) return;
+
+            loginBtn.classList.add('loading');
+            loginBtn.disabled = true;
+
+            setTimeout(() => {
+                loginBtn.classList.remove('loading');
+                loginBtn.disabled = false;
+                showSuccessModal(phone);
+            }, 1800);
+        }
+
+        // ==================== 成功弹窗 ====================
+        function showSuccessModal(phone) {
+            const maskedPhone = phone.slice(0, 3) + '****' + phone.slice(7);
+            const modalMessage = document.getElementById('modalMessage');
+            modalMessage.textContent = '欢迎回来！手机号 ' + maskedPhone + ' 已成功登录，人机身份验证已通过。';
+            document.getElementById('successModal').classList.add('active');
+        }
+
+        function resetForm() {
+            loginForm.reset();
+            phoneWrapper.classList.remove('success', 'error');
+            codeWrapper.classList.remove('success', 'error');
+            phoneError.classList.remove('visible');
+            codeError.classList.remove('visible');
+            captchaSent = false;
+            sentCode = '';
+            codeHint.classList.remove('visible');
+            hintCode.textContent = '------';
+            if (countdownTimer) {
+                clearInterval(countdownTimer);
+                sendCodeBtn.disabled = false;
+                sendCodeBtn.textContent = '获取验证码';
+                sendCodeBtn.style.fontSize = '';
+            }
+            sliderVerified = false;
+            initSlider();
+            loginBtn.classList.remove('loading');
+            loginBtn.disabled = false;
+        }
+
+        // ==================== 模态框通用关闭 ====================
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+            if (modalId === 'successModal') {
+                resetForm();
+            }
+        }
+
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            overlay.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    const id = this.id;
+                    closeModal(id);
+                }
+            });
+        });
+
+        // ==================== 协议模态框 ====================
+        function openAgreementModal() {
+            document.getElementById('agreementModal').classList.add('active');
+        }
+
+        function openPrivacyModal() {
+            document.getElementById('privacyModal').classList.add('active');
+        }
+
+        // ==================== 第三方登录 ====================
+        function openWechatLogin() {
+            document.getElementById('wechatModal').classList.add('active');
+        }
+
+        function openQQLogin() {
+            document.getElementById('qqModal').classList.add('active');
+        }
+
+        function completeThirdPartyLogin(platform) {
+            closeModal(platform === '微信' ? 'wechatModal' : 'qqModal');
+            const phone = phoneInput.value.trim() || '未绑定手机号';
+            const displayPhone = phone.length === 11 ? phone.slice(0, 3) + '****' + phone.slice(7) : phone;
+            const modalMessage = document.getElementById('modalMessage');
+            modalMessage.textContent = '通过' + platform + '授权登录成功！当前账号：' + displayPhone + '。';
+            document.getElementById('successModal').classList.add('active');
+        }
+
+        // ==================== 阻止回车提交 ====================
+        document.querySelectorAll('input').forEach(input => {
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                }
+            });
+        });
+
+        // ==================== 初始化 ====================
+        document.addEventListener('DOMContentLoaded', function() {
+            initSlider();
+        });
+    </script>
+</body>
+</html>
